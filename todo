@@ -1,2 +1,4 @@
 => Add caching 
-=> Do a template filter to display pages using special templates.
+=> Do a template filter to display pages using special templates.(Done)
+=> Display post with comments
+=> Display post with paginated comments
