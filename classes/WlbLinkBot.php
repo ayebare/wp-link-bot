@@ -1,6 +1,6 @@
 <?php
 
-if (!class_exists('classLink_Bot')) {
+if (!class_exists('Email_Manager')) {
 
     /**
      * Main / front controller class
@@ -46,19 +46,31 @@ if (!class_exists('classLink_Bot')) {
          * View the rewrite rules for the site
          */
         function view_rules() {
+			print_r(self::get_comment_posts());
 
             print_r($this->generate_links());
+            //print_r(self::get_special_pages());
         }
 
         public function generate_links() {
-            $link_array = array();			
-			$link_array['home_pg']['normal_link'] = $this->link_a_rule(get_home_url(),null);
-			
+            $link_array = array();
+            $link_array['home_pg']['normal_link'] = $this->link_a_rule(get_home_url(), null);
+
             $blog_page = get_option('page_for_posts');
-			$blog_page_no = get_option('posts_per_page');
+            $blog_page_no = get_option('posts_per_page');
 
             $link_array['blog_pg']['normal_link'] = ($blog_page) ? $this->link_a_rule(get_permalink($blog_page), 'page') : '--';
-			$link_array['blog_pg']['ex_pgl'] = ($blog_page) ? $this->link_a_rule($this->get_paginated_link($blog_page, $blog_page_no + 7 ), 'page') : '--';
+            $link_array['blog_pg']['ex_pgl'] = ($blog_page) ? $this->link_a_rule($this->get_paginated_link($blog_page, $blog_page_no + 7), 'page') : '--';
+
+            // special pages
+            $special_pages = self::get_special_pages();
+            if (!empty($special_pages)) {
+                foreach ($special_pages as $type => $data) {
+                    $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
+                    $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule(get_permalink($data['pagi']['id']), $type) : '--';
+                    $link_array[$type]['ex_pgl'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';				
+                }
+            }
 
             $post_link_ids = self::get_post_link_ids();
 
@@ -66,7 +78,10 @@ if (!class_exists('classLink_Bot')) {
                 $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
                 $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule(get_permalink($data['pagi']['id']), $type) : '--';
                 $link_array[$type]['ex_pgl'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
-            }
+                $link_array[$type]['comment_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
+                $link_array[$type]['paginated_comment_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']), $type) : '--';
+         
+		   }
 
             $taxonomy_terms = self::get_cat_terms();
 
@@ -131,7 +146,9 @@ if (!class_exists('classLink_Bot')) {
             $operator = 'and'; // 'and' or 'or'
 
             $post_types = get_post_types($args, $output, $operator);
-
+            $posts_w_comments = self::get_comment_posts();
+			$max_pg_comments = get_option('comments_per_page');
+			
             foreach ($post_types as $post_type) {
                 $post_ids = array();
                 $args = array(
@@ -144,27 +161,27 @@ if (!class_exists('classLink_Bot')) {
 
                 $posts = new WP_Query($args);
                 if ($posts->have_posts()) {
-                    $pagi = $no_pagi = false;
+                    $pagi = $no_pagi = $no_pagi_com  = $pagi_com = false;
                     while ($posts->have_posts()) {
                         $post = $posts->next_post();
                         //search if the post is paginated
                         $content = $post->post_content;
-                        if (false !== strpos($content, '<!--nextpage-->') && !$pagi) {
+                        $numpages = self::get_post_pages($content);
 
-                            // Ignore nextpage at the beginning of the content.
-                            if (0 === strpos($content, '<!--nextpage-->'))
-                                $content = substr($content, 15);
-
-                            $pages = explode('<!--nextpage-->', $content);
-                            $numpages = count($pages);
-                            if ($numpages > 1) {
-                                $post_ids['pagi'] = array('id' => $post->ID, 'pg_no' => $numpages);
-                                $pagi = true;
-                            }
-                        } elseif (!$no_pagi) {
+                        if (!$pagi && $numpages > 1) {
+                            $post_ids['pagi'] = array('id' => $post->ID, 'pg_no' => $numpages);
+                            $pagi = true; // post is paginated
+                        } elseif (!$no_pagi) { //if we don't have a non paginated ID in this type
                             $post_ids['no_pagi'] = $post->ID;
                             $no_pagi = true;
                         }
+						if(isset($posts_w_comments[$post->ID])){
+							if( $posts_w_comments[$post->ID]> $max_pg_comments && !$pagi_com){
+								$post_ids['pagi_com'] = $post->ID; // has paginated comments
+							}elseif(!$no_pagi_com){
+								$post_ids['no_pagi_com'] = $post->ID; // has non paginated comments
+							}
+						}
 
                         if ($pagi && $no_pagi) {
                             break; // job done, get out o here!
@@ -204,6 +221,54 @@ if (!class_exists('classLink_Bot')) {
             }
 
             // endLink_Bot
+        }
+
+        public static function get_special_pages() {
+            global $wpdb;
+            $special_pg_array = array();
+            $sql = $wpdb->prepare("SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template');
+            $special_pages = $wpdb->get_results($sql);
+            $theme_templates = get_page_templates();
+
+            foreach ($special_pages as $spage) {
+                if ($spage->meta_value == 'default' || !in_array($spage->meta_value, $theme_templates))
+                    continue;
+                if (isset($special_pg_array[$spage->meta_value]['pagi']) && isset($special_pg_array[$spage->meta_value]['no_pagi']))
+                    continue;
+                $page = get_post($spage->post_id);
+                $post_pages = self::get_post_pages($page->post_content);
+                if ($post_pages > 1 && !isset($special_pg_array[$spage->meta_value]['pagi'])) {// if we have no paginated post sample, store it
+                    $special_pg_array[$spage->meta_value]['pagi'] = $spage->post_id;
+                } elseif ($post_pages <= 1 && !isset($special_pg_array[$spage->meta_value]['no_pagi'])) { // if we have no non paginated sample store it.
+                    $special_pg_array[$spage->meta_value]['no_pagi'] = $spage->post_id;
+                }
+            }
+			  return $special_pg_array;
+
+        }
+		
+		public static function get_comment_posts(){
+			global $wpdb;
+            $comment_pg_array = array();
+            $id_coment_arr = $wpdb->get_col("SELECT comment_post_ID FROM $wpdb->comments");
+			return array_count_values($id_coment_arr); // return the number of comments per ID
+		}
+
+        public static function get_post_pages($content) {
+            if (false !== strpos($content, '<!--nextpage-->')) {
+
+                // Ignore nextpage at the beginning of the content.
+                if (0 === strpos($content, '<!--nextpage-->'))
+                    $content = substr($content, 15);
+
+                $pages = explode('<!--nextpage-->', $content);
+                $numpages = count($pages);
+                if ($numpages > 1) {
+                    return $numpages;
+                }else
+                    return 1;
+            }
+            return 1;
         }
 
     }
