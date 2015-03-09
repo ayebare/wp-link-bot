@@ -1,6 +1,5 @@
 === WP Link Bot ===
-Contributors: brooksX
-Tags: rewrite rules, tools
+Contributors: Tags: rewrite rules, tools
 Tested up to: 4.1.1
 Requires at least: 3.1
 Stable tag: 1.0
