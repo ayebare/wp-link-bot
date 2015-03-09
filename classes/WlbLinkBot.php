@@ -62,6 +62,8 @@ if (!class_exists('classLink_Bot')) {
             $blog_page = get_option('page_for_posts');
 
             $link_array['home_pg']['normal_link'] = $this->link_a_rule($home_url, null);
+            $link_array['home_pg']['404'] = $this->link_a_rule($home_url.'/zyxwvutsr10up', null);
+			
 
             $link_array['blog_pg']['normal_link'] = ($blog_page) ? $this->link_a_rule(get_permalink($blog_page), 'page') : '--';
             if ($blog_view['no_of_pages'] > 1) {
@@ -72,21 +74,25 @@ if (!class_exists('classLink_Bot')) {
             //search page
             $link_array['search']['results'] = add_query_arg('s', 'a', $home_url);
             if ($blog_view['no_of_pages'] > 1) {
-                $link_array['search']['paginated_results'] = add_query_arg('s', 'a', $this->get_paginated_link(null, 2));
+                $link_array['search']['paginated_results'] = add_query_arg('s', 'a', $this->search_pagination(2));
             }
-            $link_array['search']['not_found'] = add_query_arg('s', '$#zxy*xyz#$', $home_url);
+            $link_array['search']['not_found'] = add_query_arg('s', 'zyxwvutsr10up', $home_url);
 
 
             // special pages
             $special_pages = self::get_special_pages();
             if (!empty($special_pages)) {
                 foreach ($special_pages as $type => $data) {
-                    $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
-                    $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule(get_permalink($data['pagi']['id']), $type) : '--';
-                    $link_array[$type]['ex_pgl'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
+                $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
+                $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], 2), $type) : '--';
+                $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
+                $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
+                $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
+                $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
                 }
             }
-
+			
+            // post links
             $post_link_ids = self::get_post_link_ids();
 
             foreach ($post_link_ids as $type => $data) {
@@ -95,15 +101,30 @@ if (!class_exists('classLink_Bot')) {
                 $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
                 $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
                 $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
-                $link_array[$type]['pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
             }
 
+			//taxonomy term archive links
             $taxonomy_terms = self::get_cat_terms();
 
             foreach ($taxonomy_terms as $term_name => $term) {
                 $link_array[$term_name]['normal_link'] = $this->link_a_rule(get_term_link($term[0]), $term_name);
-                $link_array[$term_name]['ex_pgl'] = '';
+                $link_array[$term_name]['pagination_exceed'] = '';
             }
+			
+			//Year archive links
+             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
+			  if ($blog_view['no_of_pages'] > 1) {
+				$link_array['year_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('year', 2), null); 
+				$link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $blog_view['no_of_pages']+7), null); 
+			  }
+			  
+			//Month archive links
+             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
+			  if ($blog_view['no_of_pages'] > 1) {
+				$link_array['month_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('month', 2), null); 
+				$link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $blog_view['no_of_pages']+7), null); 
+			  }			
 
             return $link_array;
         }
@@ -138,12 +159,10 @@ if (!class_exists('classLink_Bot')) {
             if (1 == $i) {
                 $url = get_permalink($id);
             } else {
-                if (!isset($id)) {//if Id is not set, treat as home page
-                    $url = trailingslashit(get_home_url()) . user_trailingslashit("$wp_rewrite->pagination_base/" . $i, 'single_paged');
-                } elseif ('' == get_option('permalink_structure')) {
+                if ('' == get_option('permalink_structure')) {
                     $url = add_query_arg('page', $i, get_permalink());
                 } elseif ('page' == get_option('show_on_front') && get_option('page_on_front') == $id || get_option('page_for_posts') == $id) {
-                    $url = trailingslashit(get_permalink($id)) . user_trailingslashit("$wp_rewrite->pagination_base/" . $i, 'single_paged');
+                    $url =  $this->add_pagination_page_2_url(get_permalink($id), $i);					   
                 } else {
                     $url = trailingslashit(get_permalink($id)) . user_trailingslashit($i, 'single_paged');
                 }
@@ -151,6 +170,30 @@ if (!class_exists('classLink_Bot')) {
 
             return $url;
         }
+		
+		public function date_archive_pagination($date, $index){
+			switch($date){
+				case 'day':
+				$url = get_day_link(date('Y'), date('M'), date('D'));
+				break;
+				case 'month':
+				$url = get_month_link(date('Y'),date('M'));	
+                break;				
+				default:
+				$url = get_year_link(date('Y'));
+				break;
+			}
+			return $this->add_pagination_page_2_url($url, $index);
+		}
+		
+		public function search_pagination($index){
+			return  $this->add_pagination_page_2_url(get_home_url(), $index);
+		}
+		
+		public function add_pagination_page_2_url($url, $index){
+			global $wp_rewrite;
+			return trailingslashit($url) . user_trailingslashit("$wp_rewrite->pagination_base/" . $index, 'single_paged');
+		}
 
         /**
          * Retrieve comments page number link.
@@ -304,7 +347,8 @@ if (!class_exists('classLink_Bot')) {
                 $page = get_post($spage->post_id);
                 $post_pages = self::get_post_pages($page->post_content);
                 if ($post_pages > 1 && !isset($special_pg_array[$spage->meta_value]['pagi'])) {// if we have no paginated post sample, store it
-                    $special_pg_array[$spage->meta_value]['pagi'] = $spage->post_id;
+                    $special_pg_array[$spage->meta_value]['pagi']['id'] = $spage->post_id;
+					$special_pg_array[$spage->meta_value]['pagi']['pg_no'] = $post_pages;
                 } elseif ($post_pages <= 1 && !isset($special_pg_array[$spage->meta_value]['no_pagi'])) { // if we have no non paginated sample store it.
                     $special_pg_array[$spage->meta_value]['no_pagi'] = $spage->post_id;
                 }
