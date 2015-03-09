@@ -8,10 +8,15 @@ if (!class_exists('classLink_Bot')) {
      */
     class classLink_Bot {
 
+        protected static $cache_group;
+        protected static $cache_time;
+
         /**
          * Constructor class this case calls the register hook function which is a collection of hooks and filters
          */
         function __construct() {
+            self::$cache_group = 'wblink_query';
+            self:$cache_time = 3600;
             $this->register_hook_callbacks();
         }
 
@@ -20,6 +25,7 @@ if (!class_exists('classLink_Bot')) {
          */
         public function register_hook_callbacks() {
             add_action('init', array($this, 'init'));
+            add_action('save_post', array($this, 'delete_cache'));
         }
 
         /**
@@ -122,28 +128,28 @@ if (!class_exists('classLink_Bot')) {
             //Year archive links
             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
 
-				$year_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 year", time())));
-				$year_pages = ceil($year_posts/$blog_view['posts_per_page']);
-	                    if ($year_pages > 1) {
+            $year_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 year", time())));
+            $year_pages = ceil($year_posts / $blog_view['posts_per_page']);
+            if ($year_pages > 1) {
                 $link_array['year_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('year', 2), null);
                 $link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $year_pages + 7), null);
             }
 
             //Month archive links
             $link_array['month_archive']['normal_link'] = $this->link_a_rule(get_month_link(date('Y'), date('m')), null);
-				$month_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 month", time())));
-				$month_pages = ceil($month_posts/$blog_view['posts_per_page']);
-	                    if ($month_pages > 1) {
+            $month_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 month", time())));
+            $month_pages = ceil($month_posts / $blog_view['posts_per_page']);
+            if ($month_pages > 1) {
                 $link_array['month_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('month', 2), null);
                 $link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $month_pages + 7), null);
             }
-			
-			//Day Posts
-			
+
+            //Day Posts
+
             $link_array['day_archive']['normal_link'] = $this->link_a_rule(get_day_link(date('Y'), date('m'), date('d')), null);
-				$day_posts = $this->count_post_by_date(date("Y-m-d"));
-				$day_pages = ceil($day_posts/$blog_view['posts_per_page']);
-	                    if ($day_pages > 1) {
+            $day_posts = $this->count_post_by_date(date("Y-m-d"));
+            $day_pages = ceil($day_posts / $blog_view['posts_per_page']);
+            if ($day_pages > 1) {
                 $link_array['day_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('day', 2), null);
                 $link_array['day_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('day', $day_pages + 7), null);
             }
@@ -287,7 +293,12 @@ if (!class_exists('classLink_Bot')) {
                     'update_post_term_cache' => false,
                 );
 
-                $posts = new WP_Query($args);
+                $cache_key = 'all_test_posts';
+                $posts = wp_cache_get($cache_key, self::$cache_group);
+                if (!$posts) {
+                    $posts = new WP_Query($args);
+                    wp_cache_set($cache_key, $posts, self::$cache_group, self::$cache_time);
+                }
                 if ($posts->have_posts()) {
                     $pagi = $no_pagi = $no_pagi_com = $pagi_com = false;
                     $use_cases = 0; // We shall require 4 use cases to exit the loop. start at 0 incrementing as we go along.
@@ -363,14 +374,20 @@ if (!class_exists('classLink_Bot')) {
 
         public static function get_special_pages() {
             global $wpdb;
-            $special_pg_array = array();
-            $sql = $wpdb->prepare("SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template');
-            $special_pages = $wpdb->get_results($sql);
+            $cache_key = 'special-pages';
+            $special_pg_array = wp_cache_get($cache_key, self::$cache_group);
+
+            if (!$special_pg_array) {
+                $sql = $wpdb->prepare("SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template');
+                $special_pages = $wpdb->get_results($sql);
+                wp_cache_set($cache_key, $special_pages, self::$cache_group, self::$cache_time);
+            }
+
             $theme_templates = get_page_templates();
             $max_pg_comments = get_option('comments_per_page');
             foreach ($special_pages as $spage) {
-				$temp_name = $spage->meta_value;
-				
+                $temp_name = $spage->meta_value;
+
                 if (!in_array($temp_name, $theme_templates))
                     continue;
                 if (isset($special_pg_array[$temp_name]['pagi']) && isset($special_pg_array[$temp_name]['no_pagi']))
@@ -393,8 +410,8 @@ if (!class_exists('classLink_Bot')) {
                         $pg_no = (int) $page->comment_count / $max_pg_comments;
                         $special_pg_array[$temp_name]['pagi_com']['id'] = $spage->post_id;
                         $special_pg_array[$temp_name]['pagi_com']['pg_no'] = ceil($pg_no); //no of comment pages for the post					
-                    } else{
-                         $special_pg_array[$temp_name]['no_pagi_com'] = $spage->post_id; // post with no paginated comments retrieved
+                    } else {
+                        $special_pg_array[$temp_name]['no_pagi_com'] = $spage->post_id; // post with no paginated comments retrieved
                     }
                 }
             }
@@ -403,8 +420,12 @@ if (!class_exists('classLink_Bot')) {
 
         public static function get_comment_posts() {
             global $wpdb;
-            $comment_pg_array = array();
-            $id_coment_arr = $wpdb->get_col("SELECT comment_post_ID FROM $wpdb->comments");
+            $cache_key = 'posts_wit_commets';
+            $id_coment_arr = wp_cache_get($cache_key, self::$cache_group);
+            if (!$id_coment_arr) {
+                $id_coment_arr = $wpdb->get_col("SELECT comment_post_ID FROM $wpdb->comments");
+                wp_cache_set($cache_key, $id_coment_arr, self::$cache_group, self::$cache_time);
+            }
             return array_count_values($id_coment_arr); // return the number of comments per ID
         }
 
@@ -433,19 +454,45 @@ if (!class_exists('classLink_Bot')) {
                     return 'publish';
             }
         }
-		public function count_post_by_date($date){
-			global $wpdb;
-			
-	         $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(100) FROM $wpdb->posts
+
+        public function count_post_by_date($date) {
+            global $wpdb;
+            $cache_key = 'postcount' . $date;
+            $count = wp_cache_get($cache_key, self::$cache_group);
+
+            if (false !== $count) {
+                $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(100) FROM $wpdb->posts
       		 WHERE 1=1  AND ( wp_posts.post_date > %s) 
 			 AND wp_posts.post_type = 'post' 
 			 AND (wp_posts.post_status = 'publish' 
 			 OR wp_posts.post_status = 'private')", $date));
-			 
-			 return absint($count);
-		}
-		
 
+                wp_cache_set($cache_key, $count, self::$cache_group, self::$cache_time);
+            }
+
+            return absint($count);
+        }
+
+        /*
+         * Delete cache if post is saved. 
+         *
+         */
+
+        public function delete_cache($post_id) {
+            if (did_action('save_post') !== 1)
+                return;
+
+            if (( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)) {
+                return;
+                global $wp_object_cache;
+
+                if (isset($wp_object_cache->cache[self::$cache_group])) {
+                    foreach ($wp_object_cache->cache[self::$cache_group] as $k => $v) {
+                        wp_cache_delete($k, $group);
+                    }
+                }
+            }
+        }
 
     }
 
