@@ -121,16 +121,31 @@ if (!class_exists('classLink_Bot')) {
 
             //Year archive links
             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
-            if ($blog_view['no_of_pages'] > 1) {
+
+				$year_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 year", time())));
+				$year_pages = ceil($year_posts/$blog_view['posts_per_page']);
+	                    if ($year_pages > 1) {
                 $link_array['year_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('year', 2), null);
-                $link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $blog_view['no_of_pages'] + 7), null);
+                $link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $year_pages + 7), null);
             }
 
             //Month archive links
-            $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
-            if ($blog_view['no_of_pages'] > 1) {
+            $link_array['month_archive']['normal_link'] = $this->link_a_rule(get_month_link(date('Y'), date('m')), null);
+				$month_posts = $this->count_post_by_date(date("Y-m-d", strtotime("-1 month", time())));
+				$month_pages = ceil($month_posts/$blog_view['posts_per_page']);
+	                    if ($month_pages > 1) {
                 $link_array['month_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('month', 2), null);
-                $link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $blog_view['no_of_pages'] + 7), null);
+                $link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $month_pages + 7), null);
+            }
+			
+			//Day Posts
+			
+            $link_array['day_archive']['normal_link'] = $this->link_a_rule(get_day_link(date('Y'), date('m'), date('d')), null);
+				$day_posts = $this->count_post_by_date(date("Y-m-d"));
+				$day_pages = ceil($day_posts/$blog_view['posts_per_page']);
+	                    if ($day_pages > 1) {
+                $link_array['day_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('day', 2), null);
+                $link_array['day_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('day', $day_pages + 7), null);
             }
 
             return $link_array;
@@ -181,10 +196,10 @@ if (!class_exists('classLink_Bot')) {
         public function date_archive_pagination($date, $index) {
             switch ($date) {
                 case 'day':
-                    $url = get_day_link(date('Y'), date('M'), date('D'));
+                    $url = get_day_link(date('Y'), date('m'), date('d'));
                     break;
                 case 'month':
-                    $url = get_month_link(date('Y'), date('M'));
+                    $url = get_month_link(date('Y'), date('m'));
                     break;
                 default:
                     $url = get_year_link(date('Y'));
@@ -418,6 +433,19 @@ if (!class_exists('classLink_Bot')) {
                     return 'publish';
             }
         }
+		public function count_post_by_date($date){
+			global $wpdb;
+			
+	         $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(100) FROM $wpdb->posts
+      		 WHERE 1=1  AND ( wp_posts.post_date > %s) 
+			 AND wp_posts.post_type = 'post' 
+			 AND (wp_posts.post_status = 'publish' 
+			 OR wp_posts.post_status = 'private')", $date));
+			 
+			 return absint($count);
+		}
+		
+
 
     }
 
