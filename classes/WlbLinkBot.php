@@ -62,8 +62,8 @@ if (!class_exists('classLink_Bot')) {
             $blog_page = get_option('page_for_posts');
 
             $link_array['home_pg']['normal_link'] = $this->link_a_rule($home_url, null);
-            $link_array['home_pg']['404'] = $this->link_a_rule($home_url.'/zyxwvutsr10up', null);
-			
+            $link_array['home_pg']['404'] = $this->link_a_rule($home_url . '/zyxwvutsr10up', null);
+
 
             $link_array['blog_pg']['normal_link'] = ($blog_page) ? $this->link_a_rule(get_permalink($blog_page), 'page') : '--';
             if ($blog_view['no_of_pages'] > 1) {
@@ -83,15 +83,17 @@ if (!class_exists('classLink_Bot')) {
             $special_pages = self::get_special_pages();
             if (!empty($special_pages)) {
                 foreach ($special_pages as $type => $data) {
-                $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
-                $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], 2), $type) : '--';
-                $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
-                $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
-                $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
-                $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                    $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
+                    $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], 2), $type) : '--';
+                    $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
+                    if ($data['comments']) {
+                        $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
+                        $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
+                        $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                    }
                 }
             }
-			
+
             // post links
             $post_link_ids = self::get_post_link_ids();
 
@@ -99,32 +101,37 @@ if (!class_exists('classLink_Bot')) {
                 $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
                 $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], 2), $type) : '--';
                 $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
-                $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
-                $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
-                $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                if ($data['comments']) {
+                    $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
+                    $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
+                    $link_array[$type]['com_pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                }
             }
 
-			//taxonomy term archive links
+            //taxonomy term archive links
             $taxonomy_terms = self::get_cat_terms();
 
             foreach ($taxonomy_terms as $term_name => $term) {
                 $link_array[$term_name]['normal_link'] = $this->link_a_rule(get_term_link($term[0]), $term_name);
-                $link_array[$term_name]['pagination_exceed'] = '';
+                if ($blog_view['no_of_pages'] > 1) {
+                    $link_array[$term_name]['paginated_link'] = $this->link_a_rule($this->term_pagination($term[0], 2), null);
+                    $link_array[$term_name]['pagination_exceed'] = $this->link_a_rule($this->term_pagination($term[0], $blog_view['no_of_pages'] + 7), null);
+                }
             }
-			
-			//Year archive links
-             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
-			  if ($blog_view['no_of_pages'] > 1) {
-				$link_array['year_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('year', 2), null); 
-				$link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $blog_view['no_of_pages']+7), null); 
-			  }
-			  
-			//Month archive links
-             $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
-			  if ($blog_view['no_of_pages'] > 1) {
-				$link_array['month_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('month', 2), null); 
-				$link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $blog_view['no_of_pages']+7), null); 
-			  }			
+
+            //Year archive links
+            $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
+            if ($blog_view['no_of_pages'] > 1) {
+                $link_array['year_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('year', 2), null);
+                $link_array['year_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('year', $blog_view['no_of_pages'] + 7), null);
+            }
+
+            //Month archive links
+            $link_array['year_archive']['normal_link'] = $this->link_a_rule(get_year_link(date('Y')), null);
+            if ($blog_view['no_of_pages'] > 1) {
+                $link_array['month_archive']['paginated_link'] = $this->link_a_rule($this->date_archive_pagination('month', 2), null);
+                $link_array['month_archive']['pagination_exceed'] = $this->link_a_rule($this->date_archive_pagination('month', $blog_view['no_of_pages'] + 7), null);
+            }
 
             return $link_array;
         }
@@ -162,7 +169,7 @@ if (!class_exists('classLink_Bot')) {
                 if ('' == get_option('permalink_structure')) {
                     $url = add_query_arg('page', $i, get_permalink());
                 } elseif ('page' == get_option('show_on_front') && get_option('page_on_front') == $id || get_option('page_for_posts') == $id) {
-                    $url =  $this->add_pagination_page_2_url(get_permalink($id), $i);					   
+                    $url = $this->add_pagination_page_2_url(get_permalink($id), $i);
                 } else {
                     $url = trailingslashit(get_permalink($id)) . user_trailingslashit($i, 'single_paged');
                 }
@@ -170,30 +177,34 @@ if (!class_exists('classLink_Bot')) {
 
             return $url;
         }
-		
-		public function date_archive_pagination($date, $index){
-			switch($date){
-				case 'day':
-				$url = get_day_link(date('Y'), date('M'), date('D'));
-				break;
-				case 'month':
-				$url = get_month_link(date('Y'),date('M'));	
-                break;				
-				default:
-				$url = get_year_link(date('Y'));
-				break;
-			}
-			return $this->add_pagination_page_2_url($url, $index);
-		}
-		
-		public function search_pagination($index){
-			return  $this->add_pagination_page_2_url(get_home_url(), $index);
-		}
-		
-		public function add_pagination_page_2_url($url, $index){
-			global $wp_rewrite;
-			return trailingslashit($url) . user_trailingslashit("$wp_rewrite->pagination_base/" . $index, 'single_paged');
-		}
+
+        public function date_archive_pagination($date, $index) {
+            switch ($date) {
+                case 'day':
+                    $url = get_day_link(date('Y'), date('M'), date('D'));
+                    break;
+                case 'month':
+                    $url = get_month_link(date('Y'), date('M'));
+                    break;
+                default:
+                    $url = get_year_link(date('Y'));
+                    break;
+            }
+            return $this->add_pagination_page_2_url($url, $index);
+        }
+
+        public function term_pagination($term, $index) {
+            return $this->add_pagination_page_2_url(get_term_link($term), $index);
+        }
+
+        public function search_pagination($index) {
+            return $this->add_pagination_page_2_url(get_home_url(), $index);
+        }
+
+        public function add_pagination_page_2_url($url, $index) {
+            global $wp_rewrite;
+            return trailingslashit($url) . user_trailingslashit("$wp_rewrite->pagination_base/" . $index, 'single_paged');
+        }
 
         /**
          * Retrieve comments page number link.
@@ -242,7 +253,7 @@ if (!class_exists('classLink_Bot')) {
                 'public' => true,
             );
 
-            $output = 'names'; // names or objects, note names is the default
+            $output = 'names';
             $operator = 'and'; // 'and' or 'or'
 
             $post_types = get_post_types($args, $output, $operator);
@@ -251,6 +262,8 @@ if (!class_exists('classLink_Bot')) {
 
             foreach ($post_types as $post_type) {
                 $post_ids = array();
+                $post_ids['comments'] = post_type_supports($post_type, 'comments');
+
                 $args = array(
                     'post_type' => $post_type,
                     'posts_per_page' => 100, //sample space of 100posts
@@ -263,6 +276,7 @@ if (!class_exists('classLink_Bot')) {
                 if ($posts->have_posts()) {
                     $pagi = $no_pagi = $no_pagi_com = $pagi_com = false;
                     $use_cases = 0; // We shall require 4 use cases to exit the loop. start at 0 incrementing as we go along.
+
                     while ($posts->have_posts()) {
                         $post = $posts->next_post();
 
@@ -338,19 +352,35 @@ if (!class_exists('classLink_Bot')) {
             $sql = $wpdb->prepare("SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template');
             $special_pages = $wpdb->get_results($sql);
             $theme_templates = get_page_templates();
-
+            $max_pg_comments = get_option('comments_per_page');
             foreach ($special_pages as $spage) {
-                if ($spage->meta_value == 'default' || !in_array($spage->meta_value, $theme_templates))
+				$temp_name = $spage->meta_value;
+				
+                if (!in_array($temp_name, $theme_templates))
                     continue;
-                if (isset($special_pg_array[$spage->meta_value]['pagi']) && isset($special_pg_array[$spage->meta_value]['no_pagi']))
+                if (isset($special_pg_array[$temp_name]['pagi']) && isset($special_pg_array[$temp_name]['no_pagi']))
                     continue;
                 $page = get_post($spage->post_id);
+                if (!isset($special_pg_array[$temp_name]['comments'])) {
+                    $special_pg_array[$temp_name]['comments'] = post_type_supports($page->post_type, 'comments');
+                }
+
                 $post_pages = self::get_post_pages($page->post_content);
-                if ($post_pages > 1 && !isset($special_pg_array[$spage->meta_value]['pagi'])) {// if we have no paginated post sample, store it
-                    $special_pg_array[$spage->meta_value]['pagi']['id'] = $spage->post_id;
-					$special_pg_array[$spage->meta_value]['pagi']['pg_no'] = $post_pages;
-                } elseif ($post_pages <= 1 && !isset($special_pg_array[$spage->meta_value]['no_pagi'])) { // if we have no non paginated sample store it.
-                    $special_pg_array[$spage->meta_value]['no_pagi'] = $spage->post_id;
+                if ($post_pages > 1 && !isset($special_pg_array[$temp_name]['pagi'])) {// if we have no paginated post sample, store it
+                    $special_pg_array[$temp_name]['pagi']['id'] = $spage->post_id;
+                    $special_pg_array[$temp_name]['pagi']['pg_no'] = $post_pages;
+                } elseif ($post_pages <= 1 && !isset($special_pg_array[$temp_name]['no_pagi'])) { // if we have no non paginated sample store it.
+                    $special_pg_array[$temp_name]['no_pagi'] = $spage->post_id;
+                }
+                if ($special_pg_array[$temp_name]['comments'] && $page->comment_count) {
+
+                    if ($page->comment_count > $max_pg_comments) {
+                        $pg_no = (int) $page->comment_count / $max_pg_comments;
+                        $special_pg_array[$temp_name]['pagi_com']['id'] = $spage->post_id;
+                        $special_pg_array[$temp_name]['pagi_com']['pg_no'] = ceil($pg_no); //no of comment pages for the post					
+                    } else{
+                         $special_pg_array[$temp_name]['no_pagi_com'] = $spage->post_id; // post with no paginated comments retrieved
+                    }
                 }
             }
             return $special_pg_array;
