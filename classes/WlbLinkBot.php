@@ -460,7 +460,7 @@ if (!class_exists('classLink_Bot')) {
             $cache_key = 'postcount' . $date;
             $count = wp_cache_get($cache_key, self::$cache_group);
 
-            if (false !== $count) {
+            if (!$count) {
                 $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(100) FROM $wpdb->posts
       		 WHERE 1=1  AND ( wp_posts.post_date > %s) 
 			 AND wp_posts.post_type = 'post' 
@@ -494,6 +494,6 @@ if (!class_exists('classLink_Bot')) {
             }
         }
 
-    }
+    } //End of classLink_Bot Class
 
 }
