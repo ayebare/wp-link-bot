@@ -65,12 +65,15 @@ if (!class_exists('classLink_Bot')) {
 
             $link_array['blog_pg']['normal_link'] = ($blog_page) ? $this->link_a_rule(get_permalink($blog_page), 'page') : '--';
             if ($blog_view['no_of_pages'] > 1) {
-                $link_array['blog_pg']['paginated_link'] = ($blog_page) ? $this->link_a_rule($this->get_paginated_link($blog_page, 1), 'page') : '--';
+                $link_array['blog_pg']['paginated_link'] = ($blog_page) ? $this->link_a_rule($this->get_paginated_link($blog_page, 2), 'page') : '--';
             }
             $link_array['blog_pg']['ex_pgl'] = ($blog_page) ? $this->link_a_rule($this->get_paginated_link($blog_page, $blog_view['no_of_pages'] + 7), 'page') : '--';
 
             //search page
             $link_array['search']['results'] = add_query_arg('s', 'a', $home_url);
+            if ($blog_view['no_of_pages'] > 1) {
+                $link_array['search']['paginated_results'] = add_query_arg('s', 'a', $this->get_paginated_link(null, 2));
+            }
             $link_array['search']['not_found'] = add_query_arg('s', '$#zxy*xyz#$', $home_url);
 
 
@@ -88,11 +91,11 @@ if (!class_exists('classLink_Bot')) {
 
             foreach ($post_link_ids as $type => $data) {
                 $link_array[$type]['normal_link'] = isset($data['no_pagi']) ? $this->link_a_rule(get_permalink($data['no_pagi']), $type) : '--';
-                $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule(get_permalink($data['pagi']['id']), $type) : '--';
-                $link_array[$type]['ex_pgl'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
+                $link_array[$type]['paginated_link'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], 2), $type) : '--';
+                $link_array[$type]['pagination_exceed'] = isset($data['pagi']) ? $this->link_a_rule($this->get_paginated_link($data['pagi']['id'], ((int) ($data['pagi']['pg_no'] + 7))), $type) : '--';
                 $link_array[$type]['comments_link'] = isset($data['no_pagi_com']) ? $this->link_a_rule(get_permalink($data['no_pagi_com']), $type) : '--';
                 $link_array[$type]['comments_pagi_link'] = isset($data['pagi_com']) ? $this->link_a_rule(get_permalink($data['pagi_com']['id']), $type) : '--';
-                $link_array[$type]['comments_ex_pgl'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
+                $link_array[$type]['pagination_exceed'] = isset($data['pagi_com']) ? $this->link_a_rule($this->get_comment_pagenum_link($data['pagi_com']['id'], ((int) ($data['pagi_com']['pg_no'] + 7))), $type) : '--';
             }
 
             $taxonomy_terms = self::get_cat_terms();
@@ -117,7 +120,8 @@ if (!class_exists('classLink_Bot')) {
             $vars['page_for_posts'] = get_option('page_for_posts');
             $vars['posts_per_page'] = get_option('posts_per_page');
             $vars['no_of_posts'] = wp_count_posts('post')->publish;
-            $vars['no_of_pages'] = $vars['no_of_posts'] / $vars['posts_per_page'];
+            $vars['no_of_pages'] = ceil($vars['no_of_posts'] / $vars['posts_per_page']);
+            return $vars;
         }
 
         /**
@@ -127,20 +131,20 @@ if (!class_exists('classLink_Bot')) {
          * @param int $id Page id
          * @return string Link.
          */
-        function get_paginated_link($id, $i) {
+        function get_paginated_link($id=null, $i) {
             global $wp_rewrite;
-			
+
 
             if (1 == $i) {
                 $url = get_permalink($id);
             } else {
-                if ('' == get_option('permalink_structure')) {
+                if (!isset($id)) {//if Id is not set, treat as home page
+                    $url = trailingslashit(get_home_url()) . user_trailingslashit("$wp_rewrite->pagination_base/" . $i, 'single_paged');
+                } elseif ('' == get_option('permalink_structure')) {
                     $url = add_query_arg('page', $i, get_permalink());
-                } elseif ('page' == get_option('show_on_front') && get_option('page_on_front') == $id) {
+                } elseif ('page' == get_option('show_on_front') && get_option('page_on_front') == $id || get_option('page_for_posts') == $id) {
                     $url = trailingslashit(get_permalink($id)) . user_trailingslashit("$wp_rewrite->pagination_base/" . $i, 'single_paged');
-                } elseif(get_option('page_for_posts') == $id){
-                    $url = trailingslashit(get_permalink($id)) . user_trailingslashit("$wp_rewrite->pagination_base/" . $i, 'single_paged');					
-				} else {
+                } else {
                     $url = trailingslashit(get_permalink($id)) . user_trailingslashit($i, 'single_paged');
                 }
             }
@@ -235,7 +239,7 @@ if (!class_exists('classLink_Bot')) {
                             if ($posts_w_comments[$post->ID] > $max_pg_comments && !$pagi_com) {
                                 $pg_no = (int) $posts_w_comments[$post->ID] / $max_pg_comments;
                                 $post_ids['pagi_com']['id'] = $post->ID; //post with paginated comments retrieved								
-                                $post_ids['pagi_com']['pg_no'] = $pg_no; //no of comment pages for the post					
+                                $post_ids['pagi_com']['pg_no'] = ceil($pg_no); //no of comment pages for the post					
                                 $pagi_com = true;
                                 $use_cases++;
                             } elseif (!$no_pagi_com) {
