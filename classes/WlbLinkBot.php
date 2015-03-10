@@ -5,7 +5,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 	class classLink_Bot {
 
 		protected static $cache_group;
-		protected static $cache_time;
 		public static $transient;
 
 		/**
@@ -13,7 +12,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		function __construct() {
 			self::$cache_group = 'wblink_query';
-			self::$cache_time = 3600; //one hour cache
 			self::register_hook_callbacks();
 		}
 
@@ -65,7 +63,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		  [http://localhost/wp4.1.1/2015/03/page/2/] => (.?.+?)(/[0-9]+)?/?$
 		  )
 		 */
-
 		public static function generate_links() {
 			$link_array = array( );
 			$home_url = get_home_url();
@@ -185,9 +182,8 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		/**
 		 * Matches a link to its rule
 		 * $params $link, $type  the url in string format and the post type to which it belongs. 
-		 * @retun an array of a the link as the key and its corresponding re-write rule as the value
+		 * @return an array of a the link as the key and its corresponding re-write rule as the value
 		 */
-
 		public static function link_a_rule( $link, $type=null ) {
 			$rules = Rewrite_Rules::get_link_rules( $link, $type );
 			return array( $link => $rules );
@@ -200,7 +196,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Number of pages. This is calculated by deviding the number of posts by the number of posts per page
 		 * @return array 
 		 */
-
 		public static function get_blog_view_vars() {
 			$vars = array( );
 			$vars[ 'page_for_posts' ] = get_option( 'page_for_posts' );
@@ -240,7 +235,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param $index the page index of the paginated url e.g http://site.com/2015/03/page/10/ has index 10/
 		 * @retun string. url string of the paginated date archive at index $index
 		 */
-
 		public static function date_archive_pagination( $date, $index ) {
 			switch ( $date ) {
 				case 'day':
@@ -262,7 +256,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param $index the page index of the paginated url 
 		 * @retun string. url string of the paginated term archive at index $index
 		 */
-
 		public static function term_pagination( $term, $index ) {
 			return self::add_pagination_page_2_url( get_term_link( $term ), $index );
 		}
@@ -272,7 +265,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param $index the page index of the paginated url 
 		 * @return string. url string of the paginated search results at index $index
 		 */
-
 		public static function search_pagination( $index ) {
 			return self::add_pagination_page_2_url( get_home_url(), $index );
 		}
@@ -313,7 +305,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Get all post types and do an individual WP_Query as opposed to doing a query on all to prevent heavy queries
 		 * @retun a multidimensional array of post ids taken from a sample space of 100 posts conatining posts that have comments, pagination, no pagination
 		 */
-
 		public static function get_post_link_ids() {
 			// get all public post types
 			$return_ids = array( );
@@ -386,28 +377,31 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Used to get an array of all public taxonomy terms on the site
 		 * @return array of taxonomy keys as indices and their terms as values
 		 */
-
 		public static function get_tax_terms() {
-			$return_terms = array( );
-			$output = 'names'; // or objects
-			$operator = 'and'; // 'and' or 'or'
-			$args = array(
-				'public' => true,
-			);
-			$taxonomies = get_taxonomies( $args, $output, $operator );
-			$args = array(
-				'hide_empty' => true,
-			);
-			if ( $taxonomies ) {
-				foreach ( $taxonomies as $taxonomy ) {
-					$terms = get_terms( $taxonomy, $args );
-					if ( !empty( $terms ) && !is_wp_error( $terms ) ) {
-						$return_terms[ $taxonomy ] = $terms;
+			$cache_key = 'all_tax_terms';
+			$return_terms = self::get_cache( $cache_key );
+
+			if ( !$return_terms ) {
+				$output = 'names'; // or objects
+				$operator = 'and'; // 'and' or 'or'
+				$args = array(
+					'public' => true,
+				);
+				$taxonomies = get_taxonomies( $args, $output, $operator );
+				$args = array(
+					'hide_empty' => true,
+				);
+				if ( $taxonomies ) {
+					foreach ( $taxonomies as $taxonomy ) {
+						$terms = get_terms( $taxonomy, $args );
+						if ( !empty( $terms ) && !is_wp_error( $terms ) ) {
+							$return_terms[ $taxonomy ] = $terms;
+						}
 					}
 				}
-				return $return_terms;
+				$terms = self::set_cache( $cache_key, $return_terms );
 			}
-			// endLink_Bot
+			return $return_terms;
 		}
 
 		/**
@@ -416,7 +410,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Instance of each is collected.
 		 * @return multidimensional array 
 		 */
-
 		public static function get_template_pages() {
 			global $wpdb;
 
@@ -465,7 +458,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Used to fetch an array of posts that have comments
 		 * @return a multidimensional array of post ID's of posts that have comments as keys and number of comments the post has as values
 		 */
-
 		public static function get_comment_posts() {
 			global $wpdb;
 
@@ -482,7 +474,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Determines if a post has pagination by seeking presence of <!--nextpage--> in its content
 		 * @return 1 if no pages are found. (i.e 1 for one page) and number of pages found if many subpages exist in the post
 		 */
-
 		public static function get_post_pages( $content ) {
 			if ( false !== strpos( $content, '<!--nextpage-->' ) ) {
 				// Ignore nextpage at the beginning of the content.
@@ -504,7 +495,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param $type. The post type.
 		 * @return string. the public accessible post type
 		 */
-
 		public static function display_status( $type ) {
 			switch ( $type ) {
 				case 'attachment':
@@ -520,7 +510,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param int $date date object
 		 * @return archive link string according to specified date
 		 */
-
 		public static function count_post_by_date( $date ) {
 			global $wpdb;
 
@@ -544,7 +533,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			if ( !$results ) {
 				$results = isset( self::$transient[ $key ] ) ? self::$transient[ $key ] : false;
 				if ( $results ) {
-					wp_cache_set( $key, $results, self::$cache_group, self::$cache_time );
+					wp_cache_set( $key, $results, self::$cache_group, 3600 );
 				}
 			}
 			return $results;
@@ -552,7 +541,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 		public static function set_cache( $cache_key, $value ) {
 			self::$transient[ $cache_key ] = $value;
-			set_transient( self::$cache_group, self::$transient, self::$cache_time );
+			set_transient( self::$cache_group, self::$transient, rand(2600,3600));//randomised expiry so there is time between loads
 		}
 
 		/**
@@ -560,7 +549,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * Since cache has been set to an hour, It makes sense to update it whenever a post is saved.
 		 * @return void
 		 */
-
 		public static function delete_cache( $post_id ) {
 			global $wp_object_cache;
 
