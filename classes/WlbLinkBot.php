@@ -125,13 +125,25 @@ if (!class_exists('classLink_Bot')) {
             }
 
             //taxonomy term archive links
-            $taxonomy_terms = self::get_cat_terms();
+            $taxonomy_terms = self::get_tax_terms();
 
-            foreach ($taxonomy_terms as $term_name => $term) {
-                $link_array[$term_name]['normal_link'] = $this->link_a_rule(get_term_link($term[0]), $term_name);
-                if ($blog_view['no_of_pages'] > 1) {
-                    $link_array[$term_name]['paginated_link'] = $this->link_a_rule($this->term_pagination($term[0], 2), null);
-                    $link_array[$term_name]['pagination_exceed'] = $this->link_a_rule($this->term_pagination($term[0], $blog_view['no_of_pages'] + 7), null);
+            foreach ($taxonomy_terms as $taxonomy => $terms) {
+                $pagi_term = $no_pagi_term = false;
+
+                foreach ($terms as $term) {
+                    $no_of_pages = ceil($term->count / $blog_view['posts_per_page']);
+
+                    if ($no_of_pages < 1 && $no_pagi_term == false) {
+                        $link_array[$taxonomy]['normal_link'] = $this->link_a_rule(get_term_link($term), $taxonomy);
+                        $no_pagi_term = true;
+                    } elseif ($no_of_pages > 1 && $pagi_term == false) {
+                        $link_array[$taxonomy]['paginated_link'] = $this->link_a_rule($this->term_pagination($term, 2), null);
+                        $link_array[$taxonomy]['pagination_exceed'] = $this->link_a_rule($this->term_pagination($term, $blog_view['no_of_pages'] + 7), null);
+                        $pagi_term = true;
+                    }
+                    if ($pagi_term && $no_pagi_term) {
+                        break;
+                    }
                 }
             }
 
@@ -389,7 +401,7 @@ if (!class_exists('classLink_Bot')) {
          * @return array of taxonomy keys as indices and their terms as values
          */
 
-        public static function get_cat_terms() {
+        public static function get_tax_terms() {
 
             $return_terms = array();
             $output = 'names'; // or objects
