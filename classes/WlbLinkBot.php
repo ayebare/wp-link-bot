@@ -314,7 +314,7 @@ if (!class_exists('classLink_Bot')) {
                 $posts = self::get_cache($cache_key);
                 if (!$posts) {
                     $posts = new WP_Query($args);
-                    set_transient($cache_key, $posts, self::$cache_time);
+                    self::set_cache($cache_key, $posts);
                 }
                 if ($posts->have_posts()) {
                     $pagination = $no_pagination = $no_pagi_com = $paginated_com = false;
@@ -399,7 +399,7 @@ if (!class_exists('classLink_Bot')) {
             if (!$template_pages) {
                 $sql = $wpdb->prepare("SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template');
                 $template_pages = $wpdb->get_results($sql);
-                set_transient($cache_key, $template_pages, self::$cache_time);
+                self::set_cache($cache_key, $template_pages);
             }
             $theme_templates = get_page_templates();
             $max_pg_comments = get_option('comments_per_page');
@@ -444,7 +444,7 @@ if (!class_exists('classLink_Bot')) {
             $id_coment_arr = self::get_cache($cache_key);
             if (!$id_coment_arr) {
                 $id_coment_arr = $wpdb->get_col("SELECT comment_post_ID FROM $wpdb->comments");
-                set_transient($cache_key, $id_coment_arr, self::$cache_time);
+                self::set_cache($cache_key, $id_coment_arr);
             }
             return array_count_values($id_coment_arr); // return the number of comments per ID
         }
@@ -502,7 +502,7 @@ if (!class_exists('classLink_Bot')) {
 			 AND wp_posts.post_type = 'post' 
 			 AND (wp_posts.post_status = 'publish' 
 			 OR wp_posts.post_status = 'private')", $date));
-                set_transient($cache_key, $count, self::$cache_time);
+                self::set_cache($cache_key, $count);
             }
             return absint($count);
         }
@@ -511,7 +511,7 @@ if (!class_exists('classLink_Bot')) {
 
             $results = wp_cache_get($key, self::$cache_group);
             if (!$results) {
-                $results = get_transient($key);
+                $results = get_transient(self::$cache_group.'_'.$cache_key);
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
                     if (!isset(self::$transient_index[$key])) {
@@ -521,6 +521,10 @@ if (!class_exists('classLink_Bot')) {
             }
             return $results;
         }
+		
+		public static function set_cache($cache_key, $value){
+			set_transient(self::$cache_group.'_'.$cache_key, $value, self::$cache_time); 
+		}
 
         /*
          * Delete cache if post is saved. This is a caller function for save_post
