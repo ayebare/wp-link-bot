@@ -416,9 +416,9 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 		/**
 		 * Returns an array of each instance of a page template assigned to page.  http://codex.wordpress.org/Page_Templates
-		 * The array comprises pages that have been assined page templates and they have pagnination, no paginaction, comments, no comments. one 
+		 * The array comprises pages that have been assigned page templates and they have pagination, no pagination, comments, no comments. one 
 		 * Instance of each is collected.
-		 * @retun multidimentional array 
+		 * @return multidimensional array 
 		 */
 
 		public static function get_template_pages() {
@@ -562,7 +562,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		/**
 		 * Delete cache if post is saved. This is a caller function for save_post
 		 * Since cache has been set to an hour, It makes sense to update it whenever a post is saved.
-		 * @retun void
+		 * @return void
 		 */
 
 		public static function delete_cache( $post_id ) {
