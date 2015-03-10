@@ -116,13 +116,15 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		public static function gen_search_links() {
 			$home_url = get_home_url();
 			$blog_view = self::get_blog_view_vars();
+			$url_array = array( );
 
-			self::update_url_array( 'search', 'results', add_query_arg( 's', 'a', $home_url ) );
+			$url_array[ 'results' ][ ] = add_query_arg( 's', 'a', $home_url );
 
 			if ( $blog_view[ 'no_of_pages' ] > 1 ) {
-				self::update_url_array( 'search', 'paginated_results', add_query_arg( 's', 'a', self::search_pagination( 2 ) ) );
+				$url_array[ 'paginated_results' ][ ] = add_query_arg( 's', 'a', self::search_pagination( 2 ) );
 			}
-			self::update_url_array( 'search', 'not_found', add_query_arg( 's', 'zyxwvutsr10up', $home_url ) );
+			$url_array[ 'not_found' ][ ] = add_query_arg( 's', 'zyxwvutsr10up', $home_url );
+			self::update_url_array( 'search', $url_array );
 		}
 
 		/**
@@ -132,6 +134,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		public static function gen_post_links() {
 			$site_posts = self::get_post_link_ids();
+			$url_array = array( );
 			$i = $j = 0;
 
 			foreach ( $site_posts as $post_type => $posts ) {
@@ -143,13 +146,13 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 					if ( $numpages > 1 && $i < self::$return_links ) {
 						$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $post->ID, 2 ), $post_type );
-						self::update_url_array( $post_type, 'paginated_link', $paginated_link );
+						$url_array[ 'paginated_link' ][ ] = $paginated_link;
 						$pagination_exceed = self::get_link_rule_arr( self::get_paginated_link( $post->ID, ((int) $numpages + 7 ) ), $post_type );
-						self::update_url_array( $post_type, 'pagination_exceed', $pagination_exceed );
+						$url_array[ 'pagination_exceed' ][ ] = $pagination_exceed;
 						$i++;
 					} elseif ( $j < self::$return_links ) {
 						$normal_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post_type );
-						self::update_url_array( $post_type, 'normal_link', $normal_link );
+						$url_array[ 'normal_link' ][ ] = $normal_link;
 						$j++;
 					}
 
@@ -157,6 +160,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 						break; // job done, get out o here!
 					}
 				}
+				self::update_url_array( $post_type, $url_array );
 			}
 		}
 
@@ -169,6 +173,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$site_posts = self::get_post_link_ids();
 			$post_comments_no = self::get_comment_posts();
 			$max_pg_comments = get_option( 'comments_per_page' );
+			$url_array = array( );
 
 			foreach ( $site_posts as $post_type => $posts ) {
 				$i = $j = 0;
@@ -184,13 +189,13 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 								$pages_no = (int) $post_comments_no[ $post->ID ] / $max_pg_comments;
 
 								$comments_paginated_link = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, 7 ), $post_type );
-								self::update_url_array( $post_type, 'comments_pagi_link', $comments_paginated_link );
+								$url_array[ 'comments_pagi_link' ][ ] = $comments_paginated_link;
 
 								$com_pagination_exceed = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, ((int) $pages_no + 7 ) ), $post_type );
-								self::update_url_array( $post_type, 'com_pagination_exceed', $com_pagination_exceed );
+								$url_array[ 'com_pagination_exceed' ][ ] = $com_pagination_exceed;
 							} elseif ( $j < self::$return_links ) {
 								$comments_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post_type );
-								self::update_url_array( $post_type, 'comments_link', $comments_link );
+								$url_array[ 'comments_link' ][ ] = $comments_link;
 							}
 						}
 
@@ -198,6 +203,8 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 							break; // job done, get out o here!
 						}
 					}
+
+					self::update_url_array( $post_type, $url_array );
 				}
 			}
 		}
@@ -211,25 +218,32 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$i = $j = 0;
 			$template_page_array = self::get_template_pages();
 
-			foreach ( $template_page_array as $temp_type => $post ) {
-				$content = $post->post_content;
-				$numpages = self::get_post_pages( $content ); //search if the post is paginated
+			foreach ( $template_page_array as $temp_type => $posts ) {
 
-				if ( $numpages > 1 && $i < self::$return_links ) {
-					$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $post->ID, 2 ), $post->post_type );
-					self::update_url_array( $temp_type, 'template_paginated_link', $paginated_link );
-					$pagination_exceed = self::get_link_rule_arr( self::get_paginated_link( $post->ID, ((int) $numpages + 7 ) ), $post->post_type );
-					self::update_url_array( $temp_type, 'template_pagination_exceed', $pagination_exceed );
-					$i++;
-				} elseif ( $j < self::$return_links ) {
-					$normal_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
-					self::update_url_array( $temp_type, 'template_normal_link', $normal_link );
-					$j++;
-				}
+				$url_array = array( );
 
-				if ( $i > self::$return_links && $i == $j ) {
-					break; // job done, get out o here!
+				foreach ( $posts as $post ) {
+
+					$content = $post->post_content;
+					$numpages = self::get_post_pages( $content ); //search if the post is paginated
+
+					if ( $numpages > 1 && $i < self::$return_links ) {
+						$template_paginated_link = self::get_link_rule_arr( self::get_paginated_link( $post->ID, 2 ), $post->post_type );
+						$url_array[ 'template_paginated_link' ][ ] = $template_paginated_link;
+						$template_pagination_exceed = self::get_link_rule_arr( self::get_paginated_link( $post->ID, ((int) $numpages + 7 ) ), $post->post_type );
+						$url_array[ 'template_pagination_exceed' ][ ] = $template_pagination_exceed;
+						$i++;
+					} elseif ( $j < self::$return_links ) {
+						$template_normal_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
+						$url_array[ 'template_normal_link' ][ ] = $template_normal_link;
+						$j++;
+					}
+
+					if ( $i > self::$return_links && $i == $j ) {
+						break; // job done, get out o here!
+					}
 				}
+				self::update_url_array( $temp_type, $url_array );
 			}
 		}
 
@@ -244,31 +258,48 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$post_comments_no = self::get_comment_posts();
 			$max_pg_comments = get_option( 'comments_per_page' );
 
-			foreach ( $template_page_array as $temp_type => $post ) {
-				$i = $j = 0;
+			foreach ( $template_page_array as $temp_type => $posts ) {
+				$url_array = array( );
 
-				if ( post_type_supports( $post->post_type, 'comments' ) ) {
+				foreach ( $posts as $post ) {
+					$i = $j = 0;
 
-					if ( isset( $post_comments_no[ $post->ID ] ) ) {
+					if ( post_type_supports( $post->post_type, 'comments' ) ) {
 
-						if ( $post_comments_no[ $post->ID ] > $max_pg_comments && $i < self::$return_links ) {
-							$pages_no = (int) $post_comments_no[ $post->ID ] / $max_pg_comments;
+						if ( isset( $post_comments_no[ $post->ID ] ) ) {
 
-							$comments_paginated_link = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, 7 ), $post->post_type );
-							self::update_url_array( $temp_type, 'comments_pagi_link', $comments_paginated_link );
+							if ( $post_comments_no[ $post->ID ] > $max_pg_comments && $i < self::$return_links ) {
+								$pages_no = (int) $post_comments_no[ $post->ID ] / $max_pg_comments;
 
-							$com_pagination_exceed = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, ((int) $pages_no + 7 ) ), $post->post_type );
-							self::update_url_array( $temp_type, 'com_pagination_exceed', $com_pagination_exceed );
-						} elseif ( $j < self::$return_links ) {
-							$comments_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
-							self::update_url_array( $temp_type, 'comments_link', $comments_link );
+								$comments_pagi_link = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, 7 ), $post->post_type );
+								$url_array[ 'comments_pagi_link' ][ ] = $comments_pagi_link;
+
+								$com_pagination_exceed = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, ((int) $pages_no + 7 ) ), $post->post_type );
+								$url_array[ 'com_pagination_exceed' ][ ] = $com_pagination_exceed;
+							} elseif ( $j < self::$return_links ) {
+								$comments_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
+								$url_array[ 'comments_link' ][ ] = $comments_link;
+							}
+						}
+
+						if ( $i > self::$return_links && $i == $j ) {
+							break; // job done, get out o here!
 						}
 					}
-
-					if ( $i > self::$return_links && $i == $j ) {
-						break; // job done, get out o here!
-					}
 				}
+				self::update_url_array( $temp_type, $url_array );
+			}
+		}
+
+		public static function get_term_link( $term, $variation ) {
+
+			switch ( $variation ) {
+				case 'paginated_link':
+					return self::get_link_rule_arr( self::term_pagination( $term, 2 ), $term->taxonomy );
+				case 'pagination_exceed':
+					return self::get_link_rule_arr( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), $term->taxonomy );
+				case 'normal_link':
+					return self::get_link_rule_arr( get_term_link( $term ), $term->taxonomy );
 			}
 		}
 
@@ -278,54 +309,36 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @return void
 		 */
 		public static function gen_taxterm_archive_links() {
-			$blog_view = self::get_blog_view_vars();
 
-			//taxonomy term archive links
 			$taxonomy_terms = self::get_tax_terms();
+
 			foreach ( $taxonomy_terms as $taxonomy => $terms ) {
-				$pagi_term = $no_pagi_term = $pagi_term_p = $no_pagi_term_p = false;
-				$term_usecases = 0;
+				$i = $j = $k = $m = 0;
+				$blog_view = self::get_blog_view_vars();
 
 				foreach ( $terms as $term ) {
+
 					$no_of_pages = ceil( $term->count / $blog_view[ 'posts_per_page' ] );
 
-					if ( $term->parent ) {
-						if ( $no_of_pages == 1 && $no_pagi_term_p == false ) {
-							$normal_link_parent = self::get_link_rule_arr( get_term_link( $term ), $taxonomy );
-							self::update_url_array( $taxonomy, 'normal_link_parent', $normal_link_parent );
-
-							$no_pagi_term_p = true;
-							$term_usecases++;
-						} elseif ( $no_of_pages > 1 && $pagi_term_p == false ) {
-							$paginated_link_parent = self::get_link_rule_arr( self::term_pagination( $term, 2 ), null );
-							self::update_url_array( $taxonomy, 'paginated_link_parent', $paginated_link_parent );
-
-							$pagination_exceed_parent = self::get_link_rule_arr( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
-							self::update_url_array( $taxonomy, 'pagination_exceed_parent', $pagination_exceed_parent );
-							$pagi_term_p = true;
-							$term_usecases++;
-						}
-					} else {
-						if ( $no_of_pages == 1 && $no_pagi_term == false ) {
-							$normal_link = self::get_link_rule_arr( get_term_link( $term ), $taxonomy );
-							self::update_url_array( $taxonomy, 'normal_link', $normal_link );
-							$no_pagi_term = true;
-							$term_usecases++;
-						} elseif ( $no_of_pages > 1 && $pagi_term == false ) {
-							$paginated_link = self::get_link_rule_arr( self::term_pagination( $term, 2 ), null );
-							self::update_url_array( $taxonomy, 'paginated_link', $paginated_link );
-
-							$pagination_exceed = self::get_link_rule_arr( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
-							self::update_url_array( $taxonomy, 'pagination_exceed', $pagination_exceed );
-							$pagi_term = true;
-							$term_usecases++;
-						}
+					if ( $term->parent && $no_of_pages > 1 && $i < self::$return_links ) {
+						$url_array[ 'paginated_link_parent' ][ ] = self::get_term_link( $term, 'paginated_link' );
+						$i++;
+					} elseif ( $term->parent && $j < self::$return_links ) {
+						$url_array[ 'normal_link_parent' ][ ] = self::get_term_link( $term, 'normal_link' );
+						$j++;
+					} elseif ( $no_of_pages > 1 && $k < self::$return_links ) {
+						$url_array[ 'paginated_link' ][ ] = self::get_term_link( $term, 'paginated_link' );
+						$k++;
+					} elseif ( $m < self::$return_links ) {
+						$url_array[ 'normal_link' ][ ] = self::get_term_link( $term, 'normal_link' );
+						$m++;
 					}
 
-					if ( $term_usecases == 4 ) {
+					if ( $i > self::$return_links && $i == $m && $m == $k ) {
 						break;
 					}
 				}
+				self::update_url_array( $taxonomy, $url_array );
 			}
 		}
 
@@ -336,19 +349,22 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		public static function gen_year_archive_links() {
 			$blog_view = self::get_blog_view_vars();
+			$url_array = array( );
 
-			self::update_url_array( 'year_archive', 'normal_link', self::get_link_rule_arr( get_year_link( date( 'Y' ) ), null ) );
+			$url_array[ 'normal_link' ][ ] = self::get_link_rule_arr( get_year_link( date( 'Y' ) ), null );
 
 			$year_posts = self::count_post_by_date( date( "Y-m-d", strtotime( "-1 year", time() ) ) );
 			$year_pages = ceil( $year_posts / $blog_view[ 'posts_per_page' ] );
 
 			if ( $year_pages > 1 ) {
 				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'year', 2 ), null );
-				self::update_url_array( 'year_archive', 'paginated_link', $paginated_link );
+				$url_array[ 'paginated_link' ][ ] = $paginated_link;
 
 				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'year', $year_pages + 7 ), null );
-				self::update_url_array( 'year_archive', 'pagination_exceed', $pagination_exceed );
+				$url_array[ 'pagination_exceed' ][ ] = $pagination_exceed;
 			}
+
+			self::update_url_array( 'year_archive', $url_array );
 		}
 
 		/**
@@ -358,20 +374,22 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		public static function gen_month_archive_links() {
 			$blog_view = self::get_blog_view_vars();
+			$url_array = array( );
 
 			$normal_link = self::get_link_rule_arr( get_month_link( date( 'Y' ), date( 'm' ) ), null );
-			self::update_url_array( 'month_archive', 'normal_link', $normal_link );
+			$url_array[ 'normal_link' ][ ] = $normal_link;
 
 			$month_posts = self::count_post_by_date( date( "Y-m-d", strtotime( "-1 month", time() ) ) );
 			$month_pages = ceil( $month_posts / $blog_view[ 'posts_per_page' ] );
 
 			if ( $month_pages > 1 ) {
 				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'month', 2 ), null );
-				self::update_url_array( 'month_archive', 'paginated_link', $paginated_link );
+				$url_array[ 'paginated_link' ][ ] = $paginated_link;
 
 				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'month', $month_pages + 7 ), null );
-				self::update_url_array( 'month_archive', 'pagination_exceed', $pagination_exceed );
+				$url_array[ 'pagination_exceed' ][ ] = $paginated_link;
 			}
+			self::update_url_array( 'month_archive', $url_array );
 		}
 
 		/**
@@ -386,15 +404,16 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			//Day Posts
 			$normal_link = self::get_link_rule_arr( get_day_link( date( 'Y' ), date( 'm' ), date( 'd' ) ), null );
-			self::update_url_array( 'day_archive', 'normal_link', $normal_link );
+			$url_array[ 'normal_link' ][ ] = $normal_link;
 
 			if ( $day_pages > 1 ) {
 				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'day', 2 ), null );
-				self::update_url_array( 'day_archive', 'paginated_link', $normal_link );
+				$url_array[ 'paginated_link' ][ ] = $paginated_link;
 
 				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'day', $day_pages + 7 ), null );
-				self::update_url_array( 'day_archive', 'pagination_exceed', $pagination_exceed );
+				$url_array[ 'pagination_exceed' ][ ] = $pagination_exceed;
 			}
+			self::update_url_array( 'day_archive', $url_array );
 		}
 
 		/**
@@ -425,7 +444,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 				}
 
 				$page = get_post( $page_data->post_id );
-				$posts_array[ $temp_name ] = $page;
+				$posts_array[ $temp_name ][ ] = $page;
 			}
 			return $posts_array;
 		}
@@ -435,8 +454,8 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 *
 		 * @return void
 		 */
-		public static function update_url_array( $type, $variant, $value ) {
-			self::$urls_array[ $type ][ $variant ] = $value;
+		public static function update_url_array( $type, $value ) {
+			self::$urls_array[ $type ] = $value;
 		}
 
 		/**
