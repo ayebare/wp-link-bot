@@ -509,7 +509,7 @@ if (!class_exists('classLink_Bot')) {
 
             $results = wp_cache_get($key, self::$cache_group);
             if (!$results) {
-                $results = get_transient(self::$cache_group[$cache_key]);
+                $results = get_transient($cache_key);
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
                 }
