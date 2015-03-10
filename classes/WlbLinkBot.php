@@ -16,7 +16,7 @@ if (!class_exists('classLink_Bot')) {
          */
         function __construct() {
             self::$cache_group = 'wblink_query';
-            self:$cache_time = 3600; //one hour cache
+            self::$cache_time = 3600; //one hour cache
             $this->register_hook_callbacks();
         }
 
@@ -347,7 +347,7 @@ if (!class_exists('classLink_Bot')) {
                     'update_post_term_cache' => false,
                 );
 
-                $cache_key = 'all_test_posts'.serialize($args);
+                $cache_key = 'all_test_posts_'.serialize($args);
                 $posts = wp_cache_get($cache_key, self::$cache_group);
                 if (!$posts) {
                     $posts = new WP_Query($args);
