@@ -334,7 +334,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 						$m++;
 					}
 
-					if ( $i > self::$return_links && $i == $m && $m == $k ) {
+					if ( $i > self::$return_links && $j>self::$return_links && $m>self::$return_links && $k>self::$return_links) {
 						break;
 					}
 				}
