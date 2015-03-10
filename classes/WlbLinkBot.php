@@ -73,9 +73,11 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			self::gen_blog_view_links();
 			self::gen_search_links();
-			self::gen_template_page_links();
 			self::gen_post_links();
-			self::gen_taxterm_archive_liks();
+			self::gen_comment_post_links();
+			self::gen_templates_links();
+			self::gen_template_comment_links();
+			self::gen_taxterm_archive_links();
 			self::gen_year_archive_links();
 			self::gen_month_archive_links();
 			self::gen_day_archive_links();
@@ -91,17 +93,17 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$home_url = get_home_url();
 			$blog_page = get_option( 'page_for_posts' );
 
-			self::update_url_array( 'home_pg', 'normal_link', self::link_a_rule( $home_url, null ) );
-			self::update_url_array( 'home_pg', '404', self::link_a_rule( $home_url . '/zyxwvutsr10up', null ) );
+			self::update_url_array( 'home_pg', 'normal_link', self::get_link_rule_arr( $home_url, null ) );
+			self::update_url_array( 'home_pg', '404', self::get_link_rule_arr( $home_url . '/zyxwvutsr10up', null ) );
 
-			$blog_normal_link = ($blog_page) ? self::link_a_rule( get_permalink( $blog_page ), 'page' ) : '--';
+			$blog_normal_link = ($blog_page) ? self::get_link_rule_arr( get_permalink( $blog_page ), 'page' ) : '--';
 			self::update_url_array( 'blog_pg', 'normal_link', $blog_normal_link );
 
 			if ( $blog_view[ 'no_of_pages' ] > 1 && $blog_page ) {
-				$paginated_link = self::link_a_rule( self::get_paginated_link( $blog_page, 2 ), 'page' );
+				$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $blog_page, 2 ), 'page' );
 				self::update_url_array( 'blog_pg', 'paginated_link', $paginated_link );
 
-				$pagination_exceeded = self::link_a_rule( self::get_paginated_link( $blog_page, $blog_view[ 'no_of_pages' ] + 7 ), 'page' );
+				$pagination_exceeded = self::get_link_rule_arr( self::get_paginated_link( $blog_page, $blog_view[ 'no_of_pages' ] + 7 ), 'page' );
 				self::update_url_array( 'blog_pg', 'pagination_exceeded', $pagination_exceeded );
 			}
 		}
@@ -124,67 +126,148 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		}
 
 		/**
-		 * Generates links pointing to pages with special templates and assigns them to the self::$urls_array using update_url_array function 
+		 * Generates links of posts from a sample space of all post types and assigns them to the self::$urls_array using update_url_array function 
 		 *
 		 * @return void
 		 */
-		public static function gen_template_page_links() {
-			$template_pages = self::get_template_pages();
+		public static function gen_post_links() {
+			$site_posts = self::get_post_link_ids();
+			$i = $j = 0;
 
-			if ( !empty( $template_pages ) ) {
-				foreach ( $template_pages as $type => $data ) {
+			foreach ( $site_posts as $post_type => $posts ) {
 
-					$normal_link = isset( $data[ 'no_pagination' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagination' ] ), $type ) : '--';
-					self::update_url_array( $type, 'normal_link', $normal_link );
+				while ( $posts->have_posts() ) {
+					$post = $posts->next_post();
+					$content = $post->post_content;
+					$numpages = self::get_post_pages( $content ); //search if the post is paginated
 
-					$paginated_link = isset( $data[ 'pagination' ] ) ? self::link_a_rule( self::get_paginated_link( $data[ 'pagination' ][ 'id' ], 2 ), $type ) : '--';
-					self::update_url_array( $type, 'paginated_link', $paginated_link );
+					if ( $numpages > 1 && $i < self::$return_links ) {
+						$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $post->ID, 2 ), $post_type );
+						self::update_url_array( $post_type, 'paginated_link', $paginated_link );
+						$pagination_exceed = self::get_link_rule_arr( self::get_paginated_link( $post->ID, ((int) $numpages + 7 ) ), $post_type );
+						self::update_url_array( $post_type, 'pagination_exceed', $pagination_exceed );
+						$i++;
+					} elseif ( $j < self::$return_links ) {
+						$normal_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post_type );
+						self::update_url_array( $post_type, 'normal_link', $normal_link );
+						$j++;
+					}
 
-					$pagination_exceeded = isset( $data[ 'pagination' ] ) ? self::link_a_rule( self::get_paginated_link( $data[ 'pagination' ][ 'id' ], ((int) ($data[ 'pagination' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
-					self::update_url_array( $type, 'pagination_exceeded', $pagination_exceeded );
-
-					if ( $data[ 'comments' ] ) {
-						$comment_link = isset( $data[ 'no_pagi_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagi_com' ] ), $type ) : '--';
-						self::update_url_array( $type, 'comment_link', $comment_link );
-
-						$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], 2 ), $type ) : '--';
-						self::update_url_array( $type, 'comments_pagi_link', $comments_pagi_link );
-
-						$com_pagination_exceed = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], ((int) ($data[ 'paginated_com' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
-						self::update_url_array( $type, 'com_pagination_exceed', $com_pagination_exceed );
+					if ( $i > self::$return_links && $i == $j ) {
+						break; // job done, get out o here!
 					}
 				}
 			}
 		}
 
 		/**
-		 * Generates links of all post types and assigns them to the self::$urls_array using update_url_array function 
+		 * Generates links of posts comment links from a sample space of all post types and assigns them to the self::$urls_array using update_url_array function 
 		 *
 		 * @return void
 		 */
-		public static function gen_post_links() {
-			// post links
-			$post_link_ids = self::get_post_link_ids();
+		public static function gen_comment_post_links() {
+			$site_posts = self::get_post_link_ids();
+			$post_comments_no = self::get_comment_posts();
+			$max_pg_comments = get_option( 'comments_per_page' );
 
-			foreach ( $post_link_ids as $type => $data ) {
-				$normal_link = isset( $data[ 'no_pagination' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagination' ] ), $type ) : '--';
-				self::update_url_array( $type, 'normal_link', $normal_link );
+			foreach ( $site_posts as $post_type => $posts ) {
+				$i = $j = 0;
 
-				$paginated_link = isset( $data[ 'pagination' ] ) ? self::link_a_rule( self::get_paginated_link( $data[ 'pagination' ][ 'id' ], 2 ), $type ) : '--';
-				self::update_url_array( $type, 'paginated_link', $paginated_link );
+				if ( post_type_supports( $post_type, 'comments' ) ) {
 
-				$pagination_exceed = isset( $data[ 'pagination' ] ) ? self::link_a_rule( self::get_paginated_link( $data[ 'pagination' ][ 'id' ], ((int) ($data[ 'pagination' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
-				self::update_url_array( $type, 'pagination_exceed', $pagination_exceed );
+					while ( $posts->have_posts() ) {
+						$post = $posts->next_post();
 
-				if ( $data[ 'comments' ] ) {
-					$comments_link = isset( $data[ 'no_pagi_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagi_com' ] ), $type ) : '--';
-					self::update_url_array( $type, 'comments_link', $comments_link );
+						if ( isset( $post_comments_no[ $post->ID ] ) ) {
 
-					$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ] , 7), $type ) : '--';
-					self::update_url_array( $type, 'comments_pagi_link', $comments_pagi_link );
+							if ( $post_comments_no[ $post->ID ] > $max_pg_comments && $i < self::$return_links ) {
+								$pages_no = (int) $post_comments_no[ $post->ID ] / $max_pg_comments;
 
-					$com_pagination_exceed = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], ((int) ($data[ 'paginated_com' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
-					self::update_url_array( $type, 'com_pagination_exceed', $com_pagination_exceed );
+								$comments_paginated_link = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, 7 ), $post_type );
+								self::update_url_array( $post_type, 'comments_pagi_link', $comments_paginated_link );
+
+								$com_pagination_exceed = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, ((int) $pages_no + 7 ) ), $post_type );
+								self::update_url_array( $post_type, 'com_pagination_exceed', $com_pagination_exceed );
+							} elseif ( $j < self::$return_links ) {
+								$comments_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post_type );
+								self::update_url_array( $post_type, 'comments_link', $comments_link );
+							}
+						}
+
+						if ( $i > self::$return_links && $i == $j ) {
+							break; // job done, get out o here!
+						}
+					}
+				}
+			}
+		}
+
+		/**
+		 * Generates links pointing to pages with special templates and assigns them to the self::$urls_array using update_url_array function 
+		 *
+		 * @return void
+		 */
+		public static function gen_templates_links() {
+			$i = $j = 0;
+			$template_page_array = self::get_template_pages();
+
+			foreach ( $template_page_array as $temp_type => $post ) {
+				$content = $post->post_content;
+				$numpages = self::get_post_pages( $content ); //search if the post is paginated
+
+				if ( $numpages > 1 && $i < self::$return_links ) {
+					$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $post->ID, 2 ), $post->post_type );
+					self::update_url_array( $temp_type, 'template_paginated_link', $paginated_link );
+					$pagination_exceed = self::get_link_rule_arr( self::get_paginated_link( $post->ID, ((int) $numpages + 7 ) ), $post->post_type );
+					self::update_url_array( $temp_type, 'template_pagination_exceed', $pagination_exceed );
+					$i++;
+				} elseif ( $j < self::$return_links ) {
+					$normal_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
+					self::update_url_array( $temp_type, 'template_normal_link', $normal_link );
+					$j++;
+				}
+
+				if ( $i > self::$return_links && $i == $j ) {
+					break; // job done, get out o here!
+				}
+			}
+		}
+
+		/**
+		 * Generates links of posts comment links from a sample space of posts with spacial pages
+		 * and assigns them to the self::$urls_array using update_url_array function 
+		 *
+		 * @return void
+		 */
+		public static function gen_template_comment_links() {
+			$template_page_array = self::get_template_pages();
+			$post_comments_no = self::get_comment_posts();
+			$max_pg_comments = get_option( 'comments_per_page' );
+
+			foreach ( $template_page_array as $temp_type => $post ) {
+				$i = $j = 0;
+
+				if ( post_type_supports( $post->post_type, 'comments' ) ) {
+
+					if ( isset( $post_comments_no[ $post->ID ] ) ) {
+
+						if ( $post_comments_no[ $post->ID ] > $max_pg_comments && $i < self::$return_links ) {
+							$pages_no = (int) $post_comments_no[ $post->ID ] / $max_pg_comments;
+
+							$comments_paginated_link = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, 7 ), $post->post_type );
+							self::update_url_array( $temp_type, 'comments_pagi_link', $comments_paginated_link );
+
+							$com_pagination_exceed = self::get_link_rule_arr( self::get_comment_pagenum_link( $post->ID, ((int) $pages_no + 7 ) ), $post->post_type );
+							self::update_url_array( $temp_type, 'com_pagination_exceed', $com_pagination_exceed );
+						} elseif ( $j < self::$return_links ) {
+							$comments_link = self::get_link_rule_arr( get_permalink( $post->ID ), $post->post_type );
+							self::update_url_array( $temp_type, 'comments_link', $comments_link );
+						}
+					}
+
+					if ( $i > self::$return_links && $i == $j ) {
+						break; // job done, get out o here!
+					}
 				}
 			}
 		}
@@ -194,7 +277,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 *
 		 * @return void
 		 */
-		public static function gen_taxterm_archive_liks() {
+		public static function gen_taxterm_archive_links() {
 			$blog_view = self::get_blog_view_vars();
 
 			//taxonomy term archive links
@@ -208,31 +291,31 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 					if ( $term->parent ) {
 						if ( $no_of_pages == 1 && $no_pagi_term_p == false ) {
-							$normal_link_parent = self::link_a_rule( get_term_link( $term ), $taxonomy );
+							$normal_link_parent = self::get_link_rule_arr( get_term_link( $term ), $taxonomy );
 							self::update_url_array( $taxonomy, 'normal_link_parent', $normal_link_parent );
 
 							$no_pagi_term_p = true;
 							$term_usecases++;
 						} elseif ( $no_of_pages > 1 && $pagi_term_p == false ) {
-							$paginated_link_parent = self::link_a_rule( self::term_pagination( $term, 2 ), null );
+							$paginated_link_parent = self::get_link_rule_arr( self::term_pagination( $term, 2 ), null );
 							self::update_url_array( $taxonomy, 'paginated_link_parent', $paginated_link_parent );
 
-							$pagination_exceed_parent = self::link_a_rule( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
+							$pagination_exceed_parent = self::get_link_rule_arr( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
 							self::update_url_array( $taxonomy, 'pagination_exceed_parent', $pagination_exceed_parent );
 							$pagi_term_p = true;
 							$term_usecases++;
 						}
 					} else {
 						if ( $no_of_pages == 1 && $no_pagi_term == false ) {
-							$normal_link = self::link_a_rule( get_term_link( $term ), $taxonomy );
+							$normal_link = self::get_link_rule_arr( get_term_link( $term ), $taxonomy );
 							self::update_url_array( $taxonomy, 'normal_link', $normal_link );
 							$no_pagi_term = true;
 							$term_usecases++;
 						} elseif ( $no_of_pages > 1 && $pagi_term == false ) {
-							$paginated_link = self::link_a_rule( self::term_pagination( $term, 2 ), null );
+							$paginated_link = self::get_link_rule_arr( self::term_pagination( $term, 2 ), null );
 							self::update_url_array( $taxonomy, 'paginated_link', $paginated_link );
 
-							$pagination_exceed = self::link_a_rule( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
+							$pagination_exceed = self::get_link_rule_arr( self::term_pagination( $term, $blog_view[ 'no_of_pages' ] + 7 ), null );
 							self::update_url_array( $taxonomy, 'pagination_exceed', $pagination_exceed );
 							$pagi_term = true;
 							$term_usecases++;
@@ -254,16 +337,16 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		public static function gen_year_archive_links() {
 			$blog_view = self::get_blog_view_vars();
 
-			self::update_url_array( 'year_archive', 'normal_link', self::link_a_rule( get_year_link( date( 'Y' ) ), null ) );
+			self::update_url_array( 'year_archive', 'normal_link', self::get_link_rule_arr( get_year_link( date( 'Y' ) ), null ) );
 
 			$year_posts = self::count_post_by_date( date( "Y-m-d", strtotime( "-1 year", time() ) ) );
 			$year_pages = ceil( $year_posts / $blog_view[ 'posts_per_page' ] );
 
 			if ( $year_pages > 1 ) {
-				$paginated_link = self::link_a_rule( self::date_archive_pagination( 'year', 2 ), null );
+				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'year', 2 ), null );
 				self::update_url_array( 'year_archive', 'paginated_link', $paginated_link );
 
-				$pagination_exceed = self::link_a_rule( self::date_archive_pagination( 'year', $year_pages + 7 ), null );
+				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'year', $year_pages + 7 ), null );
 				self::update_url_array( 'year_archive', 'pagination_exceed', $pagination_exceed );
 			}
 		}
@@ -276,17 +359,17 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		public static function gen_month_archive_links() {
 			$blog_view = self::get_blog_view_vars();
 
-			$normal_link = self::link_a_rule( get_month_link( date( 'Y' ), date( 'm' ) ), null );
+			$normal_link = self::get_link_rule_arr( get_month_link( date( 'Y' ), date( 'm' ) ), null );
 			self::update_url_array( 'month_archive', 'normal_link', $normal_link );
 
 			$month_posts = self::count_post_by_date( date( "Y-m-d", strtotime( "-1 month", time() ) ) );
 			$month_pages = ceil( $month_posts / $blog_view[ 'posts_per_page' ] );
 
 			if ( $month_pages > 1 ) {
-				$paginated_link = self::link_a_rule( self::date_archive_pagination( 'month', 2 ), null );
+				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'month', 2 ), null );
 				self::update_url_array( 'month_archive', 'paginated_link', $paginated_link );
 
-				$pagination_exceed = self::link_a_rule( self::date_archive_pagination( 'month', $month_pages + 7 ), null );
+				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'month', $month_pages + 7 ), null );
 				self::update_url_array( 'month_archive', 'pagination_exceed', $pagination_exceed );
 			}
 		}
@@ -302,16 +385,49 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$day_pages = ceil( $day_posts / $blog_view[ 'posts_per_page' ] );
 
 			//Day Posts
-			$normal_link = self::link_a_rule( get_day_link( date( 'Y' ), date( 'm' ), date( 'd' ) ), null );
+			$normal_link = self::get_link_rule_arr( get_day_link( date( 'Y' ), date( 'm' ), date( 'd' ) ), null );
 			self::update_url_array( 'day_archive', 'normal_link', $normal_link );
 
 			if ( $day_pages > 1 ) {
-				$paginated_link = self::link_a_rule( self::date_archive_pagination( 'day', 2 ), null );
+				$paginated_link = self::get_link_rule_arr( self::get_date_archive_pagination( 'day', 2 ), null );
 				self::update_url_array( 'day_archive', 'paginated_link', $normal_link );
 
-				$pagination_exceed = self::link_a_rule( self::date_archive_pagination( 'day', $day_pages + 7 ), null );
+				$pagination_exceed = self::get_link_rule_arr( self::get_date_archive_pagination( 'day', $day_pages + 7 ), null );
 				self::update_url_array( 'day_archive', 'pagination_exceed', $pagination_exceed );
 			}
+		}
+
+		/**
+		 * Returns an array of each page assigned to a template  http://codex.wordpress.org/Page_Templates
+		 *
+		 * @return multidimensional array of template name key page object value
+		 */
+		public static function get_template_pages() {
+			global $wpdb;
+
+			$cache_key = 'special-pages';
+			$template_pages = self::get_cache( $cache_key );
+			$posts_array = array( );
+
+			if ( !$template_pages ) {
+				$sql = $wpdb->prepare( "SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template' );
+				$template_pages = $wpdb->get_results( $sql );
+				self::set_cache( $cache_key, $template_pages );
+			}
+			$theme_templates = get_page_templates();
+
+			foreach ( $template_pages as $page_data ) {
+
+				$temp_name = $page_data->meta_value;
+
+				if ( !in_array( $temp_name, $theme_templates ) ) {
+					continue;
+				}
+
+				$page = get_post( $page_data->post_id );
+				$posts_array[ $temp_name ] = $page;
+			}
+			return $posts_array;
 		}
 
 		/**
@@ -329,7 +445,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @params $link, $type  the url in string format and the post type to which it belongs. 
 		 * @return an array of a the link as the key and its corresponding re-write rule as the value
 		 */
-		public static function link_a_rule( $link, $type=null ) {
+		public static function get_link_rule_arr( $link, $type=null ) {
 			$rules = Rewrite_Rules::get_link_rules( $link, $type );
 			return array( $link => $rules );
 		}
@@ -382,7 +498,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @param $index the page index of the paginated url e.g http://site.com/2015/03/page/10/ has index 10/
 		 * @retun string. url string of the paginated date archive at index $index
 		 */
-		public static function date_archive_pagination( $date, $index ) {
+		public static function get_date_archive_pagination( $date, $index ) {
 			switch ( $date ) {
 				case 'day':
 					$url = get_day_link( date( 'Y' ), date( 'm' ), date( 'd' ) );
@@ -439,24 +555,18 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			else
 				$result = add_query_arg( 'cpage', $pagenum, $result );
 			$result .= '#comments';
-			/**
-			 * Apply wordpress comment link filter
-			 *
-			 * @param string $result The comments page number link.
-			 */
 			$result = apply_filters( 'get_comments_pagenum_link', $result );
 			return $result;
 		}
 
 		/**
-		 * Get ordinary post link, Post with paginated comment, post with pagination
-		 * Get all post types and do an individual WP_Query as opposed to doing a query on all to prevent heavy queries
+		 * Query posts of all post types. This should run once
 		 *
-		 * @retun a multidimensional array of post ids taken from a sample space of 100 posts conatining posts that have comments, pagination, no pagination
+		 * @return a multidimensional array of post ids taken from a sample space of 100 posts 
 		 */
 		public static function get_post_link_ids() {
-			// get all public post types
-			$return_ids = array( );
+
+			$posts_data = array( );
 			// get all public post types
 			$args = array(
 				'public' => true,
@@ -464,9 +574,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$output = 'names';
 			$operator = 'and'; // 'and' or 'or'
 			$post_types = get_post_types( $args, $output, $operator );
-			$posts_w_comments = self::get_comment_posts();
-			$max_pg_comments = get_option( 'comments_per_page' );
-			
+
 			foreach ( $post_types as $post_type ) {
 				$post_ids = array( );
 				$post_ids[ 'comments' ] = post_type_supports( $post_type, 'comments' );
@@ -479,50 +587,17 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 				);
 				$cache_key = 'all_test_posts_' . serialize( $args );
 				$posts = self::get_cache( $cache_key );
-				
+
 				if ( !$posts ) {
 					$posts = new WP_Query( $args );
 					self::set_cache( $cache_key, $posts );
 				}
-				
-				if ( $posts->have_posts() ) {
-					$pagination = $no_pagination = $no_pagi_com = $paginated_com = false;
-					$use_cases = 0; // We shall require 4 use cases to exit the loop. start at 0 incrementing as we go along.
-					while ( $posts->have_posts() ) {
-						$post = $posts->next_post();
-						$content = $post->post_content;
-						$numpages = self::get_post_pages( $content ); //search if the post is paginated
-						if ( !$pagination && $numpages > 1 ) {
-							$post_ids[ 'pagination' ] = array( 'id' => $post->ID, 'pages_no' => $numpages ); // post is paginated pages_no is the no of pages it has
-							$pagination = true;
-							$use_cases++;
-						} elseif ( !$no_pagination ) {
-							$post_ids[ 'no_pagination' ] = $post->ID; // non paginated post ID is retrieved
-							$no_pagination = true;
-							$use_cases++;
-						}
-						if ( isset( $posts_w_comments[ $post->ID ] ) ) {
-							if ( $posts_w_comments[ $post->ID ] > $max_pg_comments && !$paginated_com ) {
-								$pages_no = (int) $posts_w_comments[ $post->ID ] / $max_pg_comments;
-								$post_ids[ 'paginated_com' ][ 'id' ] = $post->ID; //post with paginated comments retrieved								
-								$post_ids[ 'paginated_com' ][ 'pages_no' ] = ceil( $pages_no ); //no of comment pages for the post					
-								$paginated_com = true;
-								$use_cases++;
-							} elseif ( !$no_pagi_com ) {
-								$post_ids[ 'no_pagi_com' ] = $post->ID; // post with no paginated comments retrieved
-								$no_pagi_com = true;
-								$use_cases++;
-							}
-						}
-						if ( $use_cases == 4 ) {
-							break; // job done, get out o here!
-						}
-					}
-				}
-				$return_ids[ $post_type ] = $post_ids;
-			}
 
-			return $return_ids;
+				if ( $posts->have_posts() ) {
+					$posts_data[ $post_type ] = $posts;
+				}
+			}
+			return $posts_data;
 		}
 
 		/**
@@ -543,9 +618,9 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 				$taxonomies = get_taxonomies( $args, $output, $operator );
 				$args = array(
 					'hide_empty' => true,
-					'number'   => 100, //sample space of 100 terms
+					'number' => 100, //sample space of 100 terms
 				);
-				
+
 				if ( $taxonomies ) {
 					foreach ( $taxonomies as $taxonomy ) {
 						$terms = get_terms( $taxonomy, $args );
@@ -560,68 +635,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		}
 
 		/**
-		 * Returns an array of each instance of a page template assigned to page.  http://codex.wordpress.org/Page_Templates
-		 * The array comprises pages that have been assigned page templates and they have pagination, no pagination, comments, no comments. one 
-		 * Instance of each is collected.
-		 *
-		 * @return multidimensional array 
-		 */
-		public static function get_template_pages() {
-			global $wpdb;
-
-			$cache_key = 'special-pages';
-			$template_pages = self::get_cache( $cache_key );
-			$template_page_array = array( );
-
-			if ( !$template_pages ) {
-				$sql = $wpdb->prepare( "SELECT meta_value, post_id FROM $wpdb->postmeta WHERE meta_key = %s", '_wp_page_template' );
-				$template_pages = $wpdb->get_results( $sql );
-				self::set_cache( $cache_key, $template_pages );
-			}
-			$theme_templates = get_page_templates();
-			$max_pg_comments = get_option( 'comments_per_page' );
-
-			foreach ( $template_pages as $page_data ) {
-
-				$temp_name = $page_data->meta_value;
-
-				if ( !in_array( $temp_name, $theme_templates ) ) {
-					continue;
-				}
-				
-				if ( isset( $template_page_array[ $temp_name ][ 'pagination' ] ) && isset( $template_page_array[ $temp_name ][ 'no_pagination' ] ) ) {
-					continue;
-				}
-
-				$page = get_post( $page_data->post_id );
-
-				if ( !isset( $template_page_array[ $temp_name ][ 'comments' ] ) ) {
-					$template_page_array[ $temp_name ][ 'comments' ] = post_type_supports( $page->post_type, 'comments' );
-				}
-				
-				$post_pages = self::get_post_pages( $page->post_content );
-
-				if ( $post_pages > 1 && !isset( $template_page_array[ $temp_name ][ 'pagination' ] ) ) {// if we have no paginated post sample, store it
-					$template_page_array[ $temp_name ][ 'pagination' ][ 'id' ] = $page_data->post_id;
-					$template_page_array[ $temp_name ][ 'pagination' ][ 'pages_no' ] = $post_pages;
-				} elseif ( $post_pages <= 1 && !isset( $template_page_array[ $temp_name ][ 'no_pagination' ] ) ) { // if we have no non paginated sample store it.
-					$template_page_array[ $temp_name ][ 'no_pagination' ] = $page_data->post_id;
-				}
-
-				if ( $template_page_array[ $temp_name ][ 'comments' ] && $page->comment_count ) {
-					if ( $page->comment_count > $max_pg_comments ) {
-						$pages_no = (int) $page->comment_count / $max_pg_comments;
-						$template_page_array[ $temp_name ][ 'paginated_com' ][ 'id' ] = $page_data->post_id;
-						$template_page_array[ $temp_name ][ 'paginated_com' ][ 'pages_no' ] = ceil( $pages_no ); //no of comment pages for the post					
-					} else {
-						$template_page_array[ $temp_name ][ 'no_pagi_com' ] = $page_data->post_id; // post with no paginated comments retrieved
-					}
-				}
-			}
-			return $template_page_array;
-		}
-
-		/**
 		 * Used to fetch an array of posts that have comments
 		 *
 		 * @return a multidimensional array of post ID's of posts that have comments as keys and number of comments the post has as values
@@ -631,7 +644,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			$cache_key = 'posts_wit_commets';
 			$id_coment_arr = self::get_cache( $cache_key );
-			
+
 			if ( !$id_coment_arr ) {
 				$id_coment_arr = $wpdb->get_col( "SELECT comment_post_ID FROM $wpdb->comments" );
 				self::set_cache( $cache_key, $id_coment_arr );
@@ -651,10 +664,10 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 					$content = substr( $content, 15 );
 				$pages = explode( '<!--nextpage-->', $content );
 				$numpages = count( $pages );
-				
+
 				if ( $numpages > 1 ) {
 					return $numpages;
-				}else{
+				} else {
 					return 1;
 				}
 			}
