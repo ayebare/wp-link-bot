@@ -511,10 +511,12 @@ if (!class_exists('classLink_Bot')) {
 
             $results = wp_cache_get($key, self::$cache_group);
             if (!$results) {
-                $results = get_transient($cache_key);
+                $results = get_transient($key);
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
-                    self::$transient_index[] = $key;
+                    if (!isset(self::$transient_index[$key])) {
+                        self::$transient_index[] = $key;
+                    }
                 }
             }
             return $results;
