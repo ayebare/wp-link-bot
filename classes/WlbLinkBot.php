@@ -147,7 +147,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 						$comment_link = isset( $data[ 'no_pagi_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagi_com' ] ), $type ) : '--';
 						self::update_url_array( $type, 'comment_link', $comment_link );
 
-						$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'paginated_com' ][ 'id' ] ), $type ) : '--';
+						$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], 2 ), $type ) : '--';
 						self::update_url_array( $type, 'comments_pagi_link', $comments_pagi_link );
 
 						$com_pagination_exceed = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], ((int) ($data[ 'paginated_com' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
@@ -180,11 +180,11 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 					$comments_link = isset( $data[ 'no_pagi_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'no_pagi_com' ] ), $type ) : '--';
 					self::update_url_array( $type, 'comments_link', $comments_link );
 
-					$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( get_permalink( $data[ 'paginated_com' ][ 'id' ] ), $type ) : '--';
+					$comments_pagi_link = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ] , 7), $type ) : '--';
 					self::update_url_array( $type, 'comments_pagi_link', $comments_pagi_link );
 
 					$com_pagination_exceed = isset( $data[ 'paginated_com' ] ) ? self::link_a_rule( self::get_comment_pagenum_link( $data[ 'paginated_com' ][ 'id' ], ((int) ($data[ 'paginated_com' ][ 'pages_no' ] + 7) ) ), $type ) : '--';
-					self::update_url_array( $type, 'com_pagination_exceed', $comments_pagi_link );
+					self::update_url_array( $type, 'com_pagination_exceed', $com_pagination_exceed );
 				}
 			}
 		}
