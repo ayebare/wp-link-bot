@@ -37,7 +37,7 @@ if (!class_exists('classLink_Bot')) {
             if (!is_admin()) {
                 return;
             }
-			self::$transient = get_transient(self::$cache_group);
+            self::$transient = get_transient(self::$cache_group);
             add_action('admin_menu', array($this, 'action_admin_menu'));
         }
 
@@ -511,18 +511,18 @@ if (!class_exists('classLink_Bot')) {
 
             $results = wp_cache_get($key, self::$cache_group);
             if (!$results) {
-                $results = isset(self::$transient[$key])?self::$transient[$key]:false ;
+                $results = isset(self::$transient[$key]) ? self::$transient[$key] : false;
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
                 }
             }
             return $results;
         }
-		
-		public static function set_cache($cache_key, $value){
-			self::$transient[$cache_key] = $value;
-			set_transient(self::$cache_group, self::$transient, self::$cache_time); 
-		}
+
+        public static function set_cache($cache_key, $value) {
+            self::$transient[$cache_key] = $value;
+            set_transient(self::$cache_group, self::$transient, self::$cache_time);
+        }
 
         /*
          * Delete cache if post is saved. This is a caller function for save_post
@@ -538,14 +538,13 @@ if (!class_exists('classLink_Bot')) {
             if ('auto-draft' == $post->post_status)
                 return;
             global $wp_object_cache;
+
             if (isset($wp_object_cache->cache[self::$cache_group])) {
                 foreach ($wp_object_cache->cache[self::$cache_group] as $k => $v) {
                     wp_cache_delete($k, $group);
                 }
             }
-            foreach (self::$transient_index as $transient) {
-                delete_transient(self::$cache_group);
-            }
+            delete_transient(self::$cache_group);
         }
 
     }
