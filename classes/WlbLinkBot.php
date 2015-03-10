@@ -2,10 +2,6 @@
 
 if ( !class_exists( 'classLink_Bot' ) ) {
 
-	/**
-	 * Main / front controller class
-	 *
-	 */
 	class classLink_Bot {
 
 		protected static $cache_group;
