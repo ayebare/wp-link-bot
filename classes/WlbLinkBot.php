@@ -55,7 +55,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			print_r( self::generate_links() );
 		}
 
-		/*
+		/**
 		 * This function generates a list of possible link scenarios for a WordPress site
 		 * @sanitization use esc_url in displaying these links in the view.
 		 * @return array. multidimensional array of links	 
@@ -186,7 +186,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return $link_array;
 		}
 
-		/*
+		/**
 		 * Matches a link to its rule
 		 * $params $link, $type  the url in string format and the post type to which it belongs. 
 		 * @retun an array of a the link as the key and its corresponding re-write rule as the value
@@ -197,7 +197,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return array( $link => $rules );
 		}
 
-		/*
+		/**
 		 * Returns an array containing the site settings for page for posts as set in the settings->reading options,
 		 * The number of posts per page configured in the settings->reading options
 		 * Number of published posts. This is helpfull in calculating how many sub pages are expected in blog-view
@@ -238,7 +238,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return $url;
 		}
 
-		/*
+		/**
 		 * Returns a paginated date archive url
 		 * @param $date the date for the archived posts to display
 		 * @param $index the page index of the paginated url e.g http://site.com/2015/03/page/10/ has index 10/
@@ -260,7 +260,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return self::add_pagination_page_2_url( $url, $index );
 		}
 
-		/*
+		/**
 		 * Returns a paginated terms archive url
 		 * @param object $term the term object for which the url is to be generated
 		 * @param $index the page index of the paginated url 
@@ -271,10 +271,10 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return self::add_pagination_page_2_url( get_term_link( $term ), $index );
 		}
 
-		/*
+		/**
 		 * Returns a paginated search url
 		 * @param $index the page index of the paginated url 
-		 * @retun string. url string of the paginated search results at index $index
+		 * @return string. url string of the paginated search results at index $index
 		 */
 
 		public static function search_pagination( $index ) {
@@ -312,9 +312,10 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return $result;
 		}
 
-		/* Get ordinary post link, Post with paginated comment, post with pagination
+		/**
+		 * Get ordinary post link, Post with paginated comment, post with pagination
 		 * Get all post types and do an individual WP_Query as opposed to doing a query on all to prevent heavy queries
-		 *
+		 * @retun a multidimensional array of post ids taken from a sample space of 100 posts conatining posts that have comments, pagination, no pagination
 		 */
 
 		public static function get_post_link_ids() {
@@ -385,7 +386,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return $return_ids;
 		}
 
-		/*
+		/**
 		 * Used to get an array of all public taxonomy terms on the site
 		 * @return array of taxonomy keys as indices and their terms as values
 		 */
@@ -413,7 +414,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			// endLink_Bot
 		}
 
-		/*
+		/**
 		 * Returns an array of each instance of a page template assigned to page.  http://codex.wordpress.org/Page_Templates
 		 * The array comprises pages that have been assined page templates and they have pagnination, no paginaction, comments, no comments. one 
 		 * Instance of each is collected.
@@ -464,7 +465,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return $template_page_array;
 		}
 
-		/*
+		/**
 		 * Used to fetch an array of posts that have comments
 		 * @return a multidimensional array of post ID's of posts that have comments as keys and number of comments the post has as values
 		 */
@@ -481,7 +482,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return array_count_values( $id_coment_arr ); // return the number of comments per ID
 		}
 
-		/*
+		/**
 		 * Determines if a post has pagination by seeking presence of <!--nextpage--> in its content
 		 * @return 1 if no pages are found. (i.e 1 for one page) and number of pages found if many subpages exist in the post
 		 */
@@ -501,7 +502,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			return 1;
 		}
 
-		/*
+		/**
 		 * This is a helper function that is used by get_post_link_ids to determine the status of posts to search for
 		 * It is used in conjunction with the post type to decide what status of the post is applicable or considered viewable to the public.
 		 * @param $type. The post type.
@@ -517,8 +518,8 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			}
 		}
 
-		/*
-		 * Retuns the number of posts created before the $date object
+		/**
+		 * Returns the number of posts created before the $date object
 		 *
 		 * @param int $date date object
 		 * @return archive link string according to specified date
@@ -558,7 +559,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			set_transient( self::$cache_group, self::$transient, self::$cache_time );
 		}
 
-		/*
+		/**
 		 * Delete cache if post is saved. This is a caller function for save_post
 		 * Since cache has been set to an hour, It makes sense to update it whenever a post is saved.
 		 * @retun void
