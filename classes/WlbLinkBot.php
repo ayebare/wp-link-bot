@@ -10,7 +10,7 @@ if (!class_exists('classLink_Bot')) {
 
         protected static $cache_group;
         protected static $cache_time;
-        public static $transient_index;
+        public static $transient;
 
         /**
          * Constructor class this case calls the register hook function which is a collection of hooks and filters
@@ -18,7 +18,6 @@ if (!class_exists('classLink_Bot')) {
         function __construct() {
             self::$cache_group = 'wblink_query';
             self::$cache_time = 3600; //one hour cache
-            self::$transient_index = array(); ///used to reset all transient cache;
             $this->register_hook_callbacks();
         }
 
@@ -38,6 +37,7 @@ if (!class_exists('classLink_Bot')) {
             if (!is_admin()) {
                 return;
             }
+			self::$transient = get_transient(self::$cache_group);
             add_action('admin_menu', array($this, 'action_admin_menu'));
         }
 
@@ -511,19 +511,17 @@ if (!class_exists('classLink_Bot')) {
 
             $results = wp_cache_get($key, self::$cache_group);
             if (!$results) {
-                $results = get_transient(self::$cache_group.'_'.$cache_key);
+                $results = isset(self::$transient[$key])?self::$transient[$key]:false ;
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
-                    if (!isset(self::$transient_index[$key])) {
-                        self::$transient_index[] = $key;
-                    }
                 }
             }
             return $results;
         }
 		
 		public static function set_cache($cache_key, $value){
-			set_transient(self::$cache_group.'_'.$cache_key, $value, self::$cache_time); 
+			self::$transient[$cache_key] = $value;
+			set_transient(self::$cache_group, self::$transient, self::$cache_time); 
 		}
 
         /*
@@ -546,7 +544,7 @@ if (!class_exists('classLink_Bot')) {
                 }
             }
             foreach (self::$transient_index as $transient) {
-                delete_transient($transient);
+                delete_transient(self::$cache_group);
             }
         }
 
