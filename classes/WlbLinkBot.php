@@ -92,20 +92,25 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$blog_view = self::get_blog_view_vars();
 			$home_url = get_home_url();
 			$blog_page = get_option( 'page_for_posts' );
+			$blog_url_array = $home_url_array = array();
 
-			self::update_url_array( 'home_pg', 'normal_link', self::get_link_rule_arr( $home_url, null ) );
-			self::update_url_array( 'home_pg', '404', self::get_link_rule_arr( $home_url . '/zyxwvutsr10up', null ) );
+			$home_url_array[ 'normal_link' ][ ]= self::get_link_rule_arr( $home_url, null );
+			$home_url_array[ '404' ][ ]= self::get_link_rule_arr( $home_url . '/zyxwvutsr10up', null );
+			self::update_url_array( 'blog_pg',  $home_url_array );
 
 			$blog_normal_link = ($blog_page) ? self::get_link_rule_arr( get_permalink( $blog_page ), 'page' ) : '--';
-			self::update_url_array( 'blog_pg', 'normal_link', $blog_normal_link );
+			$blog_url_array[ 'normal_link' ][ ]= $blog_normal_link;
+			
 
 			if ( $blog_view[ 'no_of_pages' ] > 1 && $blog_page ) {
 				$paginated_link = self::get_link_rule_arr( self::get_paginated_link( $blog_page, 2 ), 'page' );
-				self::update_url_array( 'blog_pg', 'paginated_link', $paginated_link );
+				$blog_url_array[ 'paginated_link' ][ ]= $paginated_link;
 
 				$pagination_exceeded = self::get_link_rule_arr( self::get_paginated_link( $blog_page, $blog_view[ 'no_of_pages' ] + 7 ), 'page' );
-				self::update_url_array( 'blog_pg', 'pagination_exceeded', $pagination_exceeded );
+				$blog_url_array[ 'pagination_exceeded' ][ ]= $pagination_exceeded;
 			}
+			
+			self::update_url_array( 'blog_pg', $blog_url_array );
 		}
 
 		/**
