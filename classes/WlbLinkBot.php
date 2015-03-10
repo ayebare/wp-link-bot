@@ -10,6 +10,7 @@ if (!class_exists('classLink_Bot')) {
 
         protected static $cache_group;
         protected static $cache_time;
+        public static $transient_index;
 
         /**
          * Constructor class this case calls the register hook function which is a collection of hooks and filters
@@ -17,6 +18,7 @@ if (!class_exists('classLink_Bot')) {
         function __construct() {
             self::$cache_group = 'wblink_query';
             self::$cache_time = 3600; //one hour cache
+            self::$transient_index = array(); ///used to reset all transient cache;
             $this->register_hook_callbacks();
         }
 
@@ -512,6 +514,7 @@ if (!class_exists('classLink_Bot')) {
                 $results = get_transient($cache_key);
                 if ($results) {
                     wp_cache_set($key, $results, $cache_group, $time);
+                    self::$transient_index[] = $key;
                 }
             }
             return $results;
@@ -536,7 +539,9 @@ if (!class_exists('classLink_Bot')) {
                     wp_cache_delete($k, $group);
                 }
             }
-            delete_transient(self::$cache_group);
+            foreach (self::$transient_index as $transient) {
+                delete_transient($transient);
+            }
         }
 
     }
