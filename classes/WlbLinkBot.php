@@ -570,22 +570,24 @@ if (!class_exists('classLink_Bot')) {
          */
 
         public function delete_cache($post_id) {
-            if (did_action('save_post') !== 1)
+            if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
                 return;
 
-            if (( defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)) {
+            if (!$post = get_post($post_id))
                 return;
-                global $wp_object_cache;
 
-                if (isset($wp_object_cache->cache[self::$cache_group])) {
-                    foreach ($wp_object_cache->cache[self::$cache_group] as $k => $v) {
-                        wp_cache_delete($k, $group);
-                    }
+            if ('auto-draft' == $post->post_status)
+                return;
+
+            global $wp_object_cache;
+
+            if (isset($wp_object_cache->cache[self::$cache_group])) {
+                foreach ($wp_object_cache->cache[self::$cache_group] as $k => $v) {
+                    wp_cache_delete($k, $group);
                 }
             }
         }
 
-    }
-
-    //End of classLink_Bot Class
+    } //End of classLink_Bot Class
+     
 }
