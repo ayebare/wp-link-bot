@@ -544,7 +544,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			if ( !$results ) {
 				$results = isset( self::$transient[ $key ] ) ? self::$transient[ $key ] : false;
 				if ( $results ) {
-					wp_cache_set( $key, $results, $cache_group, $time );
+					wp_cache_set( $key, $results, self::$cache_group, self::$cache_time );
 				}
 			}
 			return $results;
