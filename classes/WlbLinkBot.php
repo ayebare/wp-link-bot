@@ -96,7 +96,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			$home_url_array[ 'normal_link' ][ ]= self::get_link_rule_arr( $home_url, null );
 			$home_url_array[ '404' ][ ]= self::get_link_rule_arr( $home_url . '/zyxwvutsr10up', null );
-			self::update_url_array( 'blog_pg',  $home_url_array );
+			self::update_url_array( 'home_pg',  $home_url_array );
 
 			$blog_normal_link = ($blog_page) ? self::get_link_rule_arr( get_permalink( $blog_page ), 'page' ) : '--';
 			$blog_url_array[ 'normal_link' ][ ]= $blog_normal_link;
