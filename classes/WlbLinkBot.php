@@ -5,6 +5,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 	class classLink_Bot {
 
 		protected static $cache_group;
+		protected static $cache_time;
 		public static $transient;
 
 		/**
@@ -12,6 +13,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		function __construct() {
 			self::$cache_group = 'wblink_query';
+			self::$cache_time = 3600; //one hour cache
 			self::register_hook_callbacks();
 		}
 
@@ -533,7 +535,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			if ( !$results ) {
 				$results = isset( self::$transient[ $key ] ) ? self::$transient[ $key ] : false;
 				if ( $results ) {
-					wp_cache_set( $key, $results, self::$cache_group, 3600 );
+					wp_cache_set( $key, $results, self::$cache_group, self::$cache_time );
 				}
 			}
 			return $results;
@@ -541,7 +543,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 		public static function set_cache( $cache_key, $value ) {
 			self::$transient[ $cache_key ] = $value;
-			set_transient( self::$cache_group, self::$transient, rand(2600,3600));//randomised expiry so there is time between loads
+			set_transient( self::$cache_group, self::$transient, self::$cache_time );
 		}
 
 		/**
