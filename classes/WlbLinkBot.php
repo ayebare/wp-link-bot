@@ -9,6 +9,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		protected static $return_links;
 		protected static $urls_array;
 		public static $transient;
+		public static $un_matched_rules;
 
 		/**
 		 * Constructor class this case calls the register hook function which is a collection of hooks and filters
@@ -62,6 +63,8 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		public static function view_rules() {
 			self::generate_links();
 			print_r( self::$urls_array );
+			echo 'These are unmatched rules';
+			print_r(self::$un_matched_rules);
 		}
 
 		/**
@@ -81,6 +84,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			self::gen_year_archive_links();
 			self::gen_month_archive_links();
 			self::gen_day_archive_links();
+			self::$un_matched_rules = self::get_unmatched_rules();
 		}
 
 		/**
@@ -123,12 +127,12 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$blog_view = self::get_blog_view_vars();
 			$url_array = array( );
 
-			$url_array[ 'results' ][ ] = add_query_arg( 's', 'a', $home_url );
+			$url_array[ 'results' ][ ] = self::get_link_rule_arr(add_query_arg( 's', 'a', $home_url ), null);
 
 			if ( $blog_view[ 'no_of_pages' ] > 1 ) {
-				$url_array[ 'paginated_results' ][ ] = add_query_arg( 's', 'a', self::search_pagination( 2 ) );
+				$url_array[ 'paginated_results' ][ ] = self::get_link_rule_arr(add_query_arg( 's', 'a', self::search_pagination( 2 ), null)) ;
 			}
-			$url_array[ 'not_found' ][ ] = add_query_arg( 's', 'zyxwvutsr10up', $home_url );
+			$url_array[ 'not_found' ][ ] = self::get_link_rule_arr(add_query_arg( 's', 'zyxwvutsr10up', $home_url ), null);
 			self::update_url_array( 'search', $url_array );
 		}
 
@@ -139,11 +143,11 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 */
 		public static function gen_post_links() {
 			$site_posts = self::get_post_link_ids();
-			$url_array = array( );
-			$i = $j = 0;
 
 			foreach ( $site_posts as $post_type => $posts ) {
-
+				$i=$j=0;
+                $url_array = array();
+				
 				while ( $posts->have_posts() ) {
 					$post = $posts->next_post();
 					$content = $post->post_content;
@@ -178,10 +182,10 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 			$site_posts = self::get_post_link_ids();
 			$post_comments_no = self::get_comment_posts();
 			$max_pg_comments = get_option( 'comments_per_page' );
-			$url_array = array( );
 
 			foreach ( $site_posts as $post_type => $posts ) {
 				$i = $j = 0;
+				$url_array = array( );
 
 				if ( post_type_supports( $post_type, 'comments' ) ) {
 
@@ -319,6 +323,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			foreach ( $taxonomy_terms as $taxonomy => $terms ) {
 				$i = $j = $k = $m = 0;
+				$url_array = array();
 				$blog_view = self::get_blog_view_vars();
 
 				foreach ( $terms as $term ) {
@@ -328,7 +333,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 					if ( $term->parent && $no_of_pages > 1 && $i < self::$return_links ) {
 						$url_array[ 'paginated_link_parent' ][ ] = self::get_term_link( $term, 'paginated_link' );
 						$i++;
-					} elseif ( $term->parent && $j < self::$return_links ) {
+					} elseif ( $term->parent && $no_of_pages = 1 && $j < self::$return_links ) {
 						$url_array[ 'normal_link_parent' ][ ] = self::get_term_link( $term, 'normal_link' );
 						$j++;
 					} elseif ( $no_of_pages > 1 && $k < self::$return_links ) {
@@ -460,7 +465,7 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 		 * @return void
 		 */
 		public static function update_url_array( $type, $value ) {
-			self::$urls_array[ $type ] = $value;
+			    self::$urls_array[ $type ] = (isset(self::$urls_array[ $type ]))? array_merge(self::$urls_array[ $type ], $value): $value;
 		}
 
 		/**
@@ -601,7 +606,6 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 
 			foreach ( $post_types as $post_type ) {
 				$post_ids = array( );
-				$post_ids[ 'comments' ] = post_type_supports( $post_type, 'comments' );
 				$args = array(
 					'post_type' => $post_type,
 					'posts_per_page' => 100, //sample space of 100posts
@@ -778,6 +782,30 @@ if ( !class_exists( 'classLink_Bot' ) ) {
 				}
 			}
 			delete_transient( self::$cache_group );
+		}
+		
+		public static function get_matched_rules(){
+			$matched_rules = array();
+			foreach(self::$urls_array as $group=>$links_array){
+				foreach($links_array as $variation){
+				     $matched_rules[] = array_shift($variation[0]);
+				}
+			}
+			return $matched_rules;
+		}
+		
+		public static function get_unmatched_rules(){
+			$rewrite_rules= Rewrite_Rules::get_rewrite_rules();
+			$matched_rules = self::get_matched_rules();
+			$un_matched_rules = array();
+			
+			foreach ($rewrite_rules as $rule => $data){
+			    if(!in_array($rule, $matched_rules)){
+					$un_matched_rules[] = $rule;
+				}
+			}
+			
+			return $un_matched_rules;
 		}
 
 	}
