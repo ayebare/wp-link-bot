@@ -169,11 +169,6 @@ class Rewrite_Rules {
         // Return our array of rewrite rules to be used
         return $rewrite_rule;
     }
-
-	function unmatched_rules(){
-		
-		
-	}
 	
 	
     /**
